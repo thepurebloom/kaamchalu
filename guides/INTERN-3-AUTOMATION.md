@@ -6,6 +6,72 @@
 
 ---
 
+## STOP — Do This Before Touching n8n (Day 1-3)
+
+**DO NOT skip this. DO NOT create workflows yet. Design the automations on paper first.**
+
+### Day 1: Read + Understand
+1. Read the entire PRD (`docs/PRD.md`) — pay special attention to Section 3.4 (Notification & Automation Requirements)
+2. Write down every trigger event, who gets notified, and when
+3. Write down 5 questions about anything you don't understand
+4. Discuss as a team. Use ChatGPT/Claude to research answers.
+
+### Day 2: System Design (Team)
+Work with the team to create these documents (see `docs/SYSTEM-DESIGN-TEMPLATE.md` for exact format):
+
+**Your contribution to the team design:**
+- Write the **n8n Workflow Specs** section of `docs/PRODUCT-SPEC.md`
+- For EVERY workflow, define: what triggers it, what data it receives, what steps it takes, what it outputs (emails, API calls, database updates)
+- Define the **Event Contract with Intern 2**: the exact JSON format for every webhook event. Example:
+  ```
+  Event: "job_posted"
+  Data: { job_id, category, description, location, pin_code, preferred_date, preferred_time, budget, customer_name, customer_email }
+  ```
+  Both you AND Intern 2 must agree on this format. If you need a field they don't send, tell them NOW.
+- Define the **Email Templates**: for every email type, write the subject line and body template with placeholders
+- Coordinate with Intern 4: which workflows call their AI service? What data do you send, what do you get back?
+- Help create the **Architecture Diagram** — draw the n8n box, show every arrow going in and out
+
+**Ask AI to help you design workflows:**
+> "I'm building n8n automations for a blue-collar job platform. Here are all the events that happen: [list from PRD Section 3.4]. For each event, help me design an n8n workflow: what nodes to use, what data flows between them, and what the output is. Also list 5 scheduled automations I need (daily reports, reminders, cleanup jobs)."
+
+**Ask AI to help you design email templates:**
+> "I need email templates for a blue-collar job platform called KaamChalu. Write professional but friendly email templates for: new job notification to worker, booking confirmation to both parties, rating request, worker profile approved, worker profile rejected, daily summary for workers, daily report for admin. Use placeholders like {worker_name}, {customer_name}, {job_category}, etc. Keep language simple — recipients may not be fluent in English."
+
+### Day 3: Personal Execution Plan
+Create your file: `docs/EXECUTION-PLAN-INTERN-3.md`
+
+Break down YOUR work day by day:
+- Day 1-2 while waiting for Intern 2: learn n8n, set up account, test email sending
+- Which workflows to build first? (Hint: the ones Intern 2 will trigger first)
+- When can you test with real webhook data vs fake data?
+- When will you hand Intern 2 your webhook URL?
+- What are your risks? (email delivery issues, n8n free tier limits, webhook format mismatches)
+
+Use the template in `docs/SYSTEM-DESIGN-TEMPLATE.md` Part 4.
+
+**Suggested priority order for your workflows:**
+1. Event Router (the master webhook) — everyone needs this first
+2. Job posted → notify workers (core flow)
+3. Worker accepted → notify customer (core flow)
+4. Booking confirmed → notify both (core flow)
+5. Booking completed → rating requests
+6. Worker approved/rejected
+7. Cancellations + disputes
+8. Scheduled: reminders, daily summary, admin report, cleanup
+
+### Checklist: You can start building when:
+- [ ] You've read the full PRD (especially Section 3.4)
+- [ ] `docs/PRODUCT-SPEC.md` has your workflow specs
+- [ ] Event contract agreed with Intern 2 (exact JSON format)
+- [ ] Email templates written
+- [ ] Architecture diagram is done
+- [ ] `docs/EXECUTION-PLAN.md` (team plan) is done
+- [ ] `docs/EXECUTION-PLAN-INTERN-3.md` (your personal plan) is done
+- [ ] Meer has reviewed and approved
+
+---
+
 ## What You Own
 
 Every automated workflow:

@@ -6,6 +6,71 @@
 
 ---
 
+## STOP — Do This Before Writing ANY Code (Day 1-3)
+
+**DO NOT skip this. DO NOT create any Supabase tables yet. Design first.**
+
+### Day 1: Read + Understand
+1. Read the entire PRD (`docs/PRD.md`) — every section, especially the booking state machine
+2. Write down 5 questions about anything you don't understand
+3. Discuss as a team. Use ChatGPT/Claude to research answers.
+
+### Day 2: System Design (Team)
+Work with the team to create these documents (see `docs/SYSTEM-DESIGN-TEMPLATE.md` for exact format):
+
+**Your contribution to the team design (YOU LEAD MOST OF THIS):**
+- Write the **Database Schema** section of `docs/PRODUCT-SPEC.md` — every table, every column, every relationship, every RLS rule
+- Write the **API Contract** section — every endpoint with exact request/response JSON examples
+- For each endpoint, note WHO calls it (Intern 1's frontend? Intern 3's n8n? Intern 4's admin?) and what SIDE EFFECTS it has (webhook calls, database updates)
+- Review Intern 1's page specs — do your endpoints provide all the data their pages need?
+- Review Intern 3's workflow specs — does your webhook data format match what they expect?
+- Review Intern 4's AI feature specs — can your API call their AI service correctly?
+- Help create the **Architecture Diagram** — draw the backend + database boxes, show all connections
+
+**Ask AI to help you design the schema:**
+> "I'm building a Postgres database for a blue-collar job platform. Here are my tables: [list from PRD]. Help me:
+> 1. Identify any missing tables or columns
+> 2. Design proper foreign key relationships
+> 3. Suggest indexes for common query patterns
+> 4. Write RLS policies for these roles: worker, customer, admin
+> 5. Draw an entity-relationship diagram in text format"
+
+**Ask AI to help you design the API:**
+> "I have these database tables: [paste schema]. I need REST API endpoints for: user auth (phone OTP), worker CRUD, job posting + matching, booking lifecycle, ratings, admin dashboard. For each endpoint, give me: HTTP method, URL, request body, response body, auth requirement, and error cases."
+
+### Day 3: Personal Execution Plan
+Create your file: `docs/EXECUTION-PLAN-INTERN-2.md`
+
+Break down YOUR work day by day:
+- Which tables/endpoints are you building each day?
+- Which endpoints should you build FIRST? (Hint: whatever Intern 1 and 3 need first)
+- When will you share API docs with the team?
+- When will you deploy to Railway?
+- What are your risks? (schema changes mid-project, auth issues, RLS problems)
+
+Use the template in `docs/SYSTEM-DESIGN-TEMPLATE.md` Part 4.
+
+**CRITICAL**: You are the bottleneck. Your plan must prioritize what UNBLOCKS others.
+
+Suggested priority order:
+1. Database tables + auth (everyone needs credentials Day 1)
+2. POST /api/jobs + GET /api/workers (Intern 3 needs these for n8n)
+3. Auth routes (Intern 1 needs these for login/signup)
+4. Worker routes (Intern 1 needs these for directory/profiles)
+5. Booking + rating routes (needed for Week 2 integration)
+6. Admin routes (Intern 4 needs these last)
+
+### Checklist: You can start coding when:
+- [ ] You've read the full PRD
+- [ ] `docs/PRODUCT-SPEC.md` has your schema + API contract
+- [ ] Architecture diagram is done
+- [ ] `docs/EXECUTION-PLAN.md` (team plan) is done
+- [ ] `docs/EXECUTION-PLAN-INTERN-2.md` (your personal plan) is done
+- [ ] All 3 other interns have reviewed your API contract and confirmed it works for them
+- [ ] Meer has reviewed and approved
+
+---
+
 ## What You Own
 
 - Supabase project: database tables, Row-Level Security policies, auth configuration, file storage

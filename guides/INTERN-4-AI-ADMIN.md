@@ -6,6 +6,85 @@
 
 ---
 
+## STOP — Do This Before Writing ANY Code (Day 1-3)
+
+**DO NOT skip this. DO NOT call the Gemini API yet. Design the AI features and admin panel first.**
+
+### Day 1: Read + Understand
+1. Read the entire PRD (`docs/PRD.md`) — pay special attention to Section 3.3 (Matching), Section 3.4 (AI Automations), and Section 3.5 (Admin Features)
+2. Write down: what AI decisions does this platform make? What data goes in? What comes out?
+3. Write down 5 questions about anything you don't understand
+4. Discuss as a team. Use ChatGPT/Claude to research answers.
+
+### Day 2: System Design (Team)
+Work with the team to create these documents (see `docs/SYSTEM-DESIGN-TEMPLATE.md` for exact format):
+
+**Your contribution to the team design:**
+
+**AI Features:**
+- Write the **AI Feature Specs** section of `docs/PRODUCT-SPEC.md`
+- For each AI feature, define: the exact prompt you'll send to Gemini, what input data you need, what output format you return, and what happens if the AI fails (fallback behavior)
+- Define the **AI API Contract**: exact endpoints, request/response JSON. Intern 2 and Intern 3 will call these.
+- Test your prompts in Google AI Studio BEFORE writing any code. Try 10+ different inputs. Do the results make sense?
+- Coordinate with Intern 3: which n8n workflows will call your AI? Agree on the data format.
+- Coordinate with Intern 2: will AI scoring happen inside their API or as a separate service call?
+
+**Admin Panel:**
+- Write the **Admin Page Specs** section of `docs/PRODUCT-SPEC.md`
+- For each admin page, define: what data it shows (which admin API endpoint), what actions are available, what charts/tables to display
+- Review Intern 2's admin API endpoints — do they return all the data your dashboard needs? If not, tell them NOW.
+
+**Ask AI to help you design prompts:**
+> "I'm building AI features for a blue-collar job platform. I need to create prompts for Gemini to:
+> 1. Classify job urgency (urgent/normal/flexible) from a description
+> 2. Score workers' fit for a job (given worker profile + job details)
+> 3. Detect fake reviews
+> 4. Generate professional reply messages for workers
+> 5. Clean up messy job descriptions
+>
+> For each one, write the system prompt, give 5 test cases with expected output, and explain what edge cases could go wrong."
+
+**Ask AI to help you design the admin dashboard:**
+> "I'm building an admin dashboard for a blue-collar job platform. The admin needs to see: worker verification queue, platform stats (bookings, users, revenue), dispute management, user management. What metrics and charts should I include? What layout works best? What filters and actions does the admin need on each page?"
+
+- Help create the **Architecture Diagram** — draw the AI service box and the admin panel box, show all connections
+
+### Day 3: Personal Execution Plan
+Create your file: `docs/EXECUTION-PLAN-INTERN-4.md`
+
+Break down YOUR work day by day. You have TWO parallel tracks:
+
+**Track A — AI (build first, others depend on it):**
+- Day 1-2: Test prompts in AI Studio, design endpoints
+- Day 3: Build urgency scorer + worker matcher
+- Day 4: Build fake review detector + reply generator
+- Day 5: Deploy AI service to Railway, share URL
+
+**Track B — Admin Panel (build after AI, uses Intern 2's API):**
+- Day 3-4: Admin layout + dashboard with fake data
+- Day 5: Verification queue + user management with fake data
+- Week 2: Connect to real admin API endpoints
+
+Use the template in `docs/SYSTEM-DESIGN-TEMPLATE.md` Part 4.
+
+**Your key risks:**
+- Gemini free tier rate limits (plan for caching and fallbacks)
+- AI giving inconsistent results (test prompts extensively)
+- Admin API not ready (build with fake data first)
+- Too much work (AI + admin is the biggest role — prioritize AI first since others depend on it)
+
+### Checklist: You can start building when:
+- [ ] You've read the full PRD (especially Sections 3.3, 3.4, 3.5)
+- [ ] `docs/PRODUCT-SPEC.md` has your AI specs + admin page specs
+- [ ] AI prompts tested in Google AI Studio with 10+ inputs each
+- [ ] AI API contract agreed with Intern 2 and Intern 3
+- [ ] Architecture diagram is done
+- [ ] `docs/EXECUTION-PLAN.md` (team plan) is done
+- [ ] `docs/EXECUTION-PLAN-INTERN-4.md` (your personal plan) is done
+- [ ] Meer has reviewed and approved
+
+---
+
 ## What You Own
 
 Two distinct areas:

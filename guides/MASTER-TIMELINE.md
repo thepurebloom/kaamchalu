@@ -29,19 +29,60 @@
 
 ---
 
+## Phase 0: System Design (Day 1-3) — NO CODE
+
+**This phase is mandatory. No one opens an IDE until Phase 0 is complete.**
+
+See `docs/SYSTEM-DESIGN-TEMPLATE.md` for exact templates.
+
+### Day 1: Read + Understand (ALL TOGETHER)
+
+| Time | Activity | Everyone does this |
+|------|----------|-------------------|
+| Morning | Read the full PRD individually | Each intern reads `docs/PRD.md` end to end |
+| Afternoon | Team discussion | Each person shares their 5 questions, team resolves using AI |
+
+### Day 2: System Design (ALL TOGETHER)
+
+| Time | Activity | Who leads |
+|------|----------|----------|
+| Morning | Database schema design | Intern 2 leads, everyone reviews |
+| Morning | API contract (all endpoints) | Intern 2 leads, everyone confirms their needs |
+| Afternoon | n8n workflow specs + event contract | Intern 3 leads, Intern 2 confirms webhook format |
+| Afternoon | AI feature specs + prompts | Intern 4 leads, Intern 2+3 confirm integration |
+| End of day | Page specs (customer/worker pages) | Intern 1 leads, Intern 4 adds admin pages |
+| End of day | Architecture diagram | Everyone contributes their box |
+
+**Output**: `docs/PRODUCT-SPEC.md` complete, `docs/architecture.png` done
+
+### Day 3: Execution Plans (INDIVIDUAL then TEAM)
+
+| Time | Activity | Who |
+|------|----------|-----|
+| Morning | Team execution plan | All together → `docs/EXECUTION-PLAN.md` |
+| Afternoon | Personal execution plans | Each intern → `docs/EXECUTION-PLAN-INTERN-[N].md` |
+| End of day | Review with Meer | Everyone presents their plan, Meer approves or requests changes |
+
+**Output**: Team plan + 4 individual plans complete. Meer approves. NOW you can code.
+
+---
+
 ## Week-by-Week Timeline
 
-### WEEK 1 — Foundation
+### WEEK 1 — Design (Day 1-3) + Foundation (Day 4-8)
 
 | Day | Intern 1 (Frontend) | Intern 2 (Backend) | Intern 3 (Automation) | Intern 4 (AI + Admin) |
 |-----|--------------------|--------------------|----------------------|----------------------|
-| 1 | Setup: Next.js, Vercel, deploy skeleton | Setup: Supabase project, create ALL tables, share credentials | Setup: n8n account, learn n8n basics, build test workflow | Setup: Gemini API key, test it works, scaffold admin app |
-| 2 | Build: Login + Signup pages (fake auth) | Build: RLS policies, auth setup, profile triggers | Learn: n8n nodes — Webhook, HTTP Request, Email, IF, Switch | Build: Urgency scorer + worker matcher AI functions |
-| 3 | Build: Landing page + worker directory (fake data) | Build: Auth routes + Worker routes (test with curl) | Build: Event Router webhook + test email sending setup | Build: Fake review detector + reply generator AI functions |
-| 4 | Build: Worker profile page + post a job page (fake data) | Build: Job routes + Booking routes (test with curl) | Build: Workflow 1-3 (job posted, worker accepted, booking confirmed) with test data | Build: AI server (Express) with all endpoints, deploy to Railway |
-| 5 | Build: Job detail page + customer dashboard (fake data) | Build: Rating + Admin + Notification routes, write API.md | Build: Workflow 4-7 (completed, approved, cancelled, dispute) with test data | Build: Admin dashboard page + verification queue (fake data) |
+| 1 | 📖 Read PRD, write 5 questions | 📖 Read PRD, write 5 questions | 📖 Read PRD, write 5 questions | 📖 Read PRD, write 5 questions |
+| 2 | ✏️ Write page specs, review API contract | ✏️ LEAD: Design schema + API contract | ✏️ Write workflow specs, agree event format with Intern 2 | ✏️ Write AI specs, test prompts in AI Studio, write admin page specs |
+| 3 | 📋 Team execution plan + personal plan | 📋 Team execution plan + personal plan | 📋 Team execution plan + personal plan | 📋 Team execution plan + personal plan |
+| 4 | Setup: Next.js, Vercel, deploy skeleton | Setup: Supabase project, create ALL tables, share credentials | Setup: n8n account, learn n8n basics, build test workflow | Setup: Gemini API key, test it works, scaffold admin app |
+| 5 | Build: Login + Signup pages (fake auth) | Build: RLS policies, auth setup, profile triggers | Learn: n8n nodes — Webhook, HTTP Request, Email, IF, Switch | Build: Urgency scorer + worker matcher AI functions |
+| 6 | Build: Landing page + worker directory (fake data) | Build: Auth routes + Worker routes (test with curl) | Build: Event Router webhook + test email sending setup | Build: Fake review detector + reply generator AI functions |
+| 7 | Build: Worker profile page + post a job page (fake data) | Build: Job routes + Booking routes (test with curl) | Build: Workflow 1-3 (job posted, worker accepted, booking confirmed) with test data | Build: AI server (Express) with all endpoints, deploy to Railway |
+| 8 | Build: Job detail page + customer dashboard (fake data) | Build: Rating + Admin + Notification routes, write API.md | Build: Workflow 4-7 (completed, approved, cancelled, dispute) with test data | Build: Admin dashboard page + verification queue (fake data) |
 
-**End of Week 1 milestone**: Everything works in ISOLATION with fake data. Nothing is connected yet.
+**End of Week 1 milestone**: System design complete. Everything built in ISOLATION with fake data. Nothing connected yet.
 
 ### WEEK 2 — Integration
 

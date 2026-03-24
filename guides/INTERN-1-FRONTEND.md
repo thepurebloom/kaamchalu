@@ -6,6 +6,49 @@
 
 ---
 
+## STOP — Do This Before Writing ANY Code (Day 1-3)
+
+**DO NOT skip this. DO NOT open Antigravity yet. Read and plan first.**
+
+### Day 1: Read + Understand
+1. Read the entire PRD (`docs/PRD.md`) — every section
+2. Write down 5 questions about anything you don't understand
+3. Discuss as a team. Use ChatGPT/Claude to research answers.
+
+### Day 2: System Design (Team)
+Work with the team to create these documents (see `docs/SYSTEM-DESIGN-TEMPLATE.md` for exact format):
+
+**Your contribution to the team design:**
+- Write the **Page Specs** section of `docs/PRODUCT-SPEC.md` for ALL customer and worker pages
+- For each page, define: what URL, what data it needs (which API endpoint), what actions the user can take, what happens on success/error
+- Review Intern 2's API contract — does it have everything your pages need? If not, tell them NOW.
+- Review Intern 4's admin page specs — make sure there's no overlap or inconsistency
+- Help create the **Architecture Diagram** — draw the frontend box, show which APIs each page calls
+
+### Day 3: Personal Execution Plan
+Create your file: `docs/EXECUTION-PLAN-INTERN-1.md`
+
+Break down YOUR work day by day:
+- What page are you building each day?
+- What does it need from Intern 2's API?
+- By when must it be ready for integration?
+- What are your risks (what if Intern 2's API is late?)
+
+Use the template in `docs/SYSTEM-DESIGN-TEMPLATE.md` Part 4.
+
+**Ask AI to help you plan:**
+> "I'm building the frontend for a blue-collar job platform. I need to build these pages: [list all pages from PRD]. I have 5 days to build them all with fake data, then 5 days to connect to real APIs. Help me create a day-by-day plan. Which pages should I build first and why?"
+
+### Checklist: You can start coding when:
+- [ ] You've read the full PRD
+- [ ] `docs/PRODUCT-SPEC.md` has your page specs
+- [ ] Architecture diagram is done
+- [ ] `docs/EXECUTION-PLAN.md` (team plan) is done
+- [ ] `docs/EXECUTION-PLAN-INTERN-1.md` (your personal plan) is done
+- [ ] Meer has reviewed and approved
+
+---
+
 ## What You Own
 
 You are responsible for ALL web pages:
