@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 export default function CustomerDashboard() {
   const router = useRouter();
   const [jobs, setJobs] = useState<any[]>([]);
+  const [isLoadingMatch, setIsLoadingMatch] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMyJobs();
@@ -27,30 +28,42 @@ export default function CustomerDashboard() {
     }
   };
 
-  const matchWorker = async (jobId: string, category: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-      
-    // Simplified matching logic: find first worker with matching skills
-    // Assuming workers exist and are public.
-    const { data: workers } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "worker")
-      // In a real app we'd match on skills/location here
-      .limit(1);
+  const matchWorker = async (jobId: string, category: string, budget: number) => {
+    setIsLoadingMatch(jobId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+        
+      // Simplified matching logic: find first worker with matching skills
+      const { data: workers } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "worker")
+        .limit(1);
 
-    if (workers && workers.length > 0) {
-      const bestWorker = workers[0];
-      await supabase.from("bookings").insert({
-        job_id: jobId,
-        customer_id: user?.id,
-        worker_id: bestWorker.id,
-        status: "pending"
-      });
-      alert(`🎉 Requested worker ${bestWorker.id} for this job!`);
-      fetchMyJobs();
-    } else {
-      alert("No workers found for this matching directly.");
+      if (workers && workers.length > 0) {
+        const bestWorker = workers[0];
+        
+        // Directly insert booking according to new schema requirements + preserve job matching relation!
+        const { error } = await supabase.from("bookings").insert({
+          job_id: jobId,
+          customer_id: user?.id,
+          worker_id: bestWorker.id,
+          service: category,
+          price: budget,
+          status: "pending"
+        });
+
+        if (error) {
+          alert("Failed to book worker: " + error.message);
+        } else {
+          alert(`🎉 Requested worker ${bestWorker.id} for this job!`);
+          fetchMyJobs();
+        }
+      } else {
+        alert("No workers found for this matching directly.");
+      }
+    } finally {
+      setIsLoadingMatch(null);
     }
   };
 
@@ -87,10 +100,11 @@ export default function CustomerDashboard() {
                  <div className="flex flex-col gap-3">
                    <p className="text-sm text-gray-500">No requests sent yet.</p>
                    <button 
-                     onClick={() => matchWorker(job.id, job.category)} 
-                     className="bg-green-600 hover:bg-green-700 w-max px-4 py-2 rounded text-sm transition"
+                     onClick={() => matchWorker(job.id, job.category, job.budget)} 
+                     disabled={isLoadingMatch === job.id}
+                     className="bg-green-600 hover:bg-green-700 disabled:bg-gray-700 w-max px-4 py-2 rounded text-sm transition"
                    >
-                     Find & Book Best Worker
+                     {isLoadingMatch === job.id ? "Finding Worker..." : "Find & Book Best Worker"}
                    </button>
                  </div>
                )}

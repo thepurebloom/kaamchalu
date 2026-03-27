@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 export default function JobsPage() {
     const router = useRouter();
     const [jobs, setJobs] = useState<any[]>([]);
+    const [bookingLoading, setBookingLoading] = useState<string | null>(null);
 
     // ✅ Protect route
     useEffect(() => {
@@ -25,12 +26,52 @@ export default function JobsPage() {
 
     // ✅ Fetch jobs
     const fetchJobs = async () => {
-        const { data, error } = await supabase.from("jobs").select("*");
+        const { data, error } = await supabase.from("jobs").select("*").order("created_at", { ascending: false });
 
         if (error) {
             console.log(error);
         } else {
             setJobs(data);
+        }
+    };
+
+    // ✅ Handle Book Worker
+    const handleBookWorker = async (jobId: string) => {
+        setBookingLoading(jobId);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert("Please log in to book a worker.");
+                return;
+            }
+
+            // Find an available worker
+            const { data: workers } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('role', 'worker')
+
+            if (workers && workers.length > 0) {
+                const bestWorker = workers[0];
+
+                // Insert booking referencing the global job
+                const { error } = await supabase.from("bookings").insert({
+                    job_id: jobId,
+                    customer_id: user.id,
+                    worker_id: bestWorker.id,
+                    status: "pending"
+                });
+
+                if (error) {
+                    alert("Failed to book worker: " + error.message);
+                } else {
+                    alert(`🎉 Successfully requested a worker for this job!`);
+                }
+            } else {
+                alert("No available workers found at the moment.");
+            }
+        } finally {
+            setBookingLoading(null);
         }
     };
 
@@ -75,19 +116,33 @@ export default function JobsPage() {
                 {jobs.map((job) => (
                     <div
                         key={job.id}
-                        className="bg-gray-900 p-5 rounded-xl border border-gray-800"
+                        className="bg-gray-900 p-5 rounded-xl border border-gray-800 flex flex-col justify-between"
                     >
-                        <h2 className="text-xl font-semibold">{job.category}</h2>
-                        <p className="text-gray-400">{job.description}</p>
+                        <div>
+                            <h2 className="text-xl font-semibold">{job.category}</h2>
+                            <p className="text-gray-400 mt-2">{job.description}</p>
 
-                        <div className="mt-3 text-sm text-gray-400 space-y-1">
-                            <p>📍 {job.location}</p>
-                            <p>📅 {job.preferred_date}</p>
-                            <p>⏰ {job.preferred_time}</p>
-                            <p>💰 ₹{job.budget}</p>
+                            <div className="mt-4 text-sm text-gray-500 space-y-1">
+                                <p>📍 {job.location}</p>
+                                <p>📅 {job.preferred_date}</p>
+                                <p>⏰ {job.preferred_time}</p>
+                                <p className="text-white mt-1">💰 ₹{job.budget}</p>
+                            </div>
                         </div>
+
+                        <button
+                            onClick={() => handleBookWorker(job.id)}
+                            disabled={bookingLoading === job.id}
+                            className={`mt-5 w-full py-2.5 rounded-lg font-medium transition ${bookingLoading === job.id
+                                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                                : "bg-green-600 hover:bg-green-700 text-white"
+                                }`}
+                        >
+                            {bookingLoading === job.id ? "Booking..." : "Book Worker"}
+                        </button>
                     </div>
                 ))}
+                {jobs.length === 0 && <p className="text-gray-500">No jobs posted yet.</p>}
             </div>
         </div>
     );

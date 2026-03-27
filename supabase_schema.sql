@@ -56,11 +56,14 @@ CREATE TRIGGER on_auth_user_created
 -- Note: Keep your bookings and jobs modifications from before:
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
-CREATE TABLE IF NOT EXISTS public.bookings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- Re-create bookings table relying solely on job_id relation
+DROP TABLE IF EXISTS public.bookings CASCADE;
+
+CREATE TABLE public.bookings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE,
   customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  worker_id UUID,
+  worker_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   status TEXT CHECK (status IN ('pending', 'accepted', 'rejected', 'completed')) DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
