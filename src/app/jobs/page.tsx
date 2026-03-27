@@ -36,40 +36,64 @@ export default function JobsPage() {
     };
 
     // ✅ Handle Book Worker
-    const handleBookWorker = async (jobId: string) => {
+    const handleBookWorker = async (jobId: string, jobCategory: string) => {
         setBookingLoading(jobId);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) {
                 alert("Please log in to book a worker.");
                 return;
             }
 
-            // Find an available worker
-            const { data: workers } = await supabase
+            let bestWorker = null;
+            let isExactMatch = false;
+
+            // 1. Try to find workers that match the job category
+            const { data: matchingWorkers, error: matchError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('role', 'worker')
+                .ilike('category', `%${jobCategory}%`); // Optional case-insensitive match
 
-            if (workers && workers.length > 0) {
-                const bestWorker = workers[0];
-
-                // Insert booking referencing the global job
-                const { error } = await supabase.from("bookings").insert({
-                    job_id: jobId,
-                    customer_id: user.id,
-                    worker_id: bestWorker.id,
-                    status: "pending"
-                });
-
-                if (error) {
-                    alert("Failed to book worker: " + error.message);
-                } else {
-                    alert(`🎉 Successfully requested a worker for this job!`);
-                }
+            if (!matchError && matchingWorkers && matchingWorkers.length > 0) {
+                bestWorker = matchingWorkers[0];
+                isExactMatch = true;
             } else {
-                alert("No available workers found at the moment.");
+                // 2. Fallback to all available workers if no match is found (or if column is missing)
+                const { data: allWorkers, error: allWorkersError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('role', 'worker');
+
+                if (allWorkersError || !allWorkers || allWorkers.length === 0) {
+                    alert("No available workers found at the moment.");
+                    return;
+                }
+                
+                bestWorker = allWorkers[0];
+                isExactMatch = false;
             }
+
+            // Insert booking referencing the global job
+            const { error: bookingError } = await supabase.from("bookings").insert({
+                job_id: jobId,
+                customer_id: user.id,
+                worker_id: bestWorker.id,
+                status: "pending"
+            });
+
+            if (bookingError) {
+                alert("Failed to book worker: " + bookingError.message);
+            } else {
+                if (isExactMatch) {
+                    alert(`🎉 Successfully matched and requested a specialized worker for this job!`);
+                } else {
+                    alert(`⚠️ No exact match found for "${jobCategory}". A general available worker has been assigned.`);
+                }
+            }
+        } catch (error: any) {
+            console.error("Booking error:", error);
+            alert("An unexpected error occurred during booking.");
         } finally {
             setBookingLoading(null);
         }
@@ -131,7 +155,7 @@ export default function JobsPage() {
                         </div>
 
                         <button
-                            onClick={() => handleBookWorker(job.id)}
+                            onClick={() => handleBookWorker(job.id, job.category)}
                             disabled={bookingLoading === job.id}
                             className={`mt-5 w-full py-2.5 rounded-lg font-medium transition ${bookingLoading === job.id
                                 ? "bg-gray-800 text-gray-500 cursor-not-allowed"
