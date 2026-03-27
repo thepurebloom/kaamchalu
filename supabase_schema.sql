@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS location TEXT;
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 

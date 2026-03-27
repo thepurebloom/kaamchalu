@@ -3,10 +3,11 @@ import LogoutButton from "@/components/LogoutButton";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { Job, Profile } from "@/lib/types";
 
 export default function JobsPage() {
     const router = useRouter();
-    const [jobs, setJobs] = useState<any[]>([]);
+    const [jobs, setJobs] = useState<Job[]>([]);
     const [bookingLoading, setBookingLoading] = useState<string | null>(null);
 
     // ✅ Protect route
@@ -36,7 +37,7 @@ export default function JobsPage() {
     };
 
     // ✅ Handle Book Worker
-    const handleBookWorker = async (jobId: string, jobCategory: string) => {
+    const handleBookWorker = async (jobId: string, jobCategory: string, jobLocation: string) => {
         setBookingLoading(jobId);
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -45,33 +46,49 @@ export default function JobsPage() {
                 return;
             }
 
-            let bestWorker = null;
-            let isExactMatch = false;
+            let bestWorker: Profile | null = null;
+            let matchType = 'none'; // 'exact', 'category', 'general'
 
-            // 1. Try to find workers that match the job category
-            const { data: matchingWorkers, error: matchError } = await supabase
+            // 1. Try to find workers that match BOTH category and location
+            const { data: exactWorkers, error: exactError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('role', 'worker')
-                .ilike('category', `%${jobCategory}%`); // Optional case-insensitive match
+                .ilike('category', `%${jobCategory}%`)
+                .ilike('location', `%${jobLocation}%`)
+                .returns<Profile[]>();
 
-            if (!matchError && matchingWorkers && matchingWorkers.length > 0) {
-                bestWorker = matchingWorkers[0];
-                isExactMatch = true;
+            if (!exactError && exactWorkers && exactWorkers.length > 0) {
+                bestWorker = exactWorkers[0];
+                matchType = 'exact';
             } else {
-                // 2. Fallback to all available workers if no match is found (or if column is missing)
-                const { data: allWorkers, error: allWorkersError } = await supabase
+                // 2. Fallback to workers that match ONLY category
+                const { data: categoryWorkers, error: categoryError } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('role', 'worker');
+                    .eq('role', 'worker')
+                    .ilike('category', `%${jobCategory}%`)
+                    .returns<Profile[]>();
 
-                if (allWorkersError || !allWorkers || allWorkers.length === 0) {
-                    alert("No available workers found at the moment.");
-                    return;
+                if (!categoryError && categoryWorkers && categoryWorkers.length > 0) {
+                    bestWorker = categoryWorkers[0];
+                    matchType = 'category';
+                } else {
+                    // 3. Fallback to any available worker if no match is found (Backward Compatibility)
+                    const { data: allWorkers, error: allWorkersError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('role', 'worker')
+                        .returns<Profile[]>();
+
+                    if (allWorkersError || !allWorkers || allWorkers.length === 0) {
+                        alert("No available workers found at the moment.");
+                        return;
+                    }
+                    
+                    bestWorker = allWorkers[0];
+                    matchType = 'general';
                 }
-                
-                bestWorker = allWorkers[0];
-                isExactMatch = false;
             }
 
             // Insert booking referencing the global job
@@ -85,8 +102,10 @@ export default function JobsPage() {
             if (bookingError) {
                 alert("Failed to book worker: " + bookingError.message);
             } else {
-                if (isExactMatch) {
-                    alert(`🎉 Successfully matched and requested a specialized worker for this job!`);
+                if (matchType === 'exact') {
+                    alert(`🎉 Successfully matched and requested an exact local worker for this job!`);
+                } else if (matchType === 'category') {
+                    alert(`✅ Found a specialized worker for this job! (Local worker not available)`);
                 } else {
                     alert(`⚠️ No exact match found for "${jobCategory}". A general available worker has been assigned.`);
                 }
@@ -155,7 +174,7 @@ export default function JobsPage() {
                         </div>
 
                         <button
-                            onClick={() => handleBookWorker(job.id, job.category)}
+                            onClick={() => handleBookWorker(job.id, job.category, job.location)}
                             disabled={bookingLoading === job.id}
                             className={`mt-5 w-full py-2.5 rounded-lg font-medium transition ${bookingLoading === job.id
                                 ? "bg-gray-800 text-gray-500 cursor-not-allowed"
