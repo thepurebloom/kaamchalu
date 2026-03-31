@@ -6,7 +6,7 @@ export async function scoreUrgency(description = "") {
       return "normal";
     }
 
-    const API_URL = "http://localhost:5000/api/ai/score-urgency";
+    const API_URL = `${process.env.AI_SERVER_URL || "http://localhost:5000"}/api/ai/score-urgency`;
 
     const response = await fetch(API_URL, {
       method: "POST",

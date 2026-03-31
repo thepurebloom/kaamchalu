@@ -1,0 +1,12 @@
+{
+  "name": "kaamchalu-root",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "npm run --prefix ai dev",
+    "install-all": "cd ai && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

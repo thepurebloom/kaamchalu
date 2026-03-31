@@ -68,8 +68,30 @@ app.post("/api/process-job", async (req, res) => {
   }
 });
 
-// ✅ 4. Start server safely
-app.listen(PORT, () => {
-  console.log(`🚀 Server listening on http://localhost:${PORT}`);
-  console.log(`✅ CORS enabled for http://localhost:3000`);
-});
+// ✅ 4. Start server safely with automatic port fallback
+const startServer = (port) => {
+  const server = app.listen(port, () => {
+    console.log(`\n🚀 MAIN BACKEND RUNNING`);
+    console.log(`🔗 URL: http://localhost:${port}`);
+    console.log(`✅ CORS: Allowed from http://localhost:3000\n`);
+  }).on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.warn(`⚠️  Port ${port} is already in use. Trying port ${port + 1}...`);
+      setTimeout(() => startServer(port + 1), 500); // Small delay to prevent tight loop
+    } else {
+      console.error("❌ Fatal Server Error:", err.message);
+      process.exit(1);
+    }
+  });
+
+  // Graceful shutdown
+  process.on("SIGINT", () => {
+    console.log("\n🛑 Stopping server...");
+    server.close(() => {
+      console.log("✅ Server stopped cleanly.");
+      process.exit(0);
+    });
+  });
+};
+
+startServer(parseInt(PORT));

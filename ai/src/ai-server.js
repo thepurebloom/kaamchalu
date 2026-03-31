@@ -41,7 +41,21 @@ app.post("/api/ai/score-urgency", (req, res) => {
     res.json({ urgency });
 });
 
-// 🚀 Start server
-app.listen(PORT, () => {
-    console.log(`AI Server running on http://localhost:${PORT}`);
-});
+// 🚀 Start server with port fallback
+const startServer = (port) => {
+    app.listen(port, () => {
+        console.log(`\n🤖 AI SERVER RUNNING`);
+        console.log(`🔗 URL: http://localhost:${port}`);
+        console.log(`📡 Status: Ready to score urgency\n`);
+    }).on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+            console.warn(`⚠️  AI Port ${port} is occupied. Trying port ${port + 1}...`);
+            setTimeout(() => startServer(port + 1), 500);
+        } else {
+            console.error("❌ AI Server Error:", err.message);
+            process.exit(1);
+        }
+    });
+};
+
+startServer(PORT);
