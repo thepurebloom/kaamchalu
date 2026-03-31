@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #5c4dff;
+            --primary-hover: #4a3df5;
+            --bg-gradient: linear-gradient(135deg, #f6f8fd 0%, #f1f5f9 100%);
+            --card-bg: #ffffff;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --focus-ring: rgba(92, 77, 255, 0.25);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-light);
+            font-size: 15px;
+        }
+
+        .form-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            outline: none;
+            transition: all 0.2s ease;
+            background: #fafafa;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, var(--primary) 0%, #7669ff 100%);
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(92, 77, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(92, 77, 255, 0.3);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* Results Section */
+        #result-container {
+            width: 100%;
+        }
+
+        .state-message {
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            font-size: 15px;
+            color: var(--text-light);
+            animation: fadeIn 0.4s ease;
+        }
+
+        .state-error {
+            color: #ef4444;
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-left: 4px;
+        }
+
+        /* Worker Cards */
+        .worker-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            animation: slideUp 0.5s ease backwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .worker-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .worker-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: transparent;
+        }
+
+        .worker-card:hover::before {
+            opacity: 1;
+        }
+
+        .worker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .worker-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .worker-badge {
+            background: #fffbeb;
+            color: #d97706;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid #fef3c7;
+        }
+
+        .worker-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .detail-icon {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-pill {
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Worker Finder</h1>
+            <p>Find trusted professionals near you instantly.</p>
+        </div>
+
+        <div class="form-card">
+            <div class="form-group">
+                <label class="form-label" for="desc">What do you need help with?</label>
+                <input class="form-control" id="desc" placeholder="e.g., Pipe leaking urgently in the kitchen" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="skill">Service Type</label>
+                <input class="form-control" id="skill" placeholder="e.g., plumber, electrician" />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label" for="budget">Budget (₹)</label>
+                    <input class="form-control" id="budget" type="number" placeholder="e.g., 500" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="location">Location</label>
+                    <input class="form-control" id="location" placeholder="e.g., Nagpur" />
+                </div>
+            </div>
+
+            <button class="btn-submit" onclick="findWorkers()" id="submitBtn">
+                <span>Find Workers</span>
+                <span style="font-size: 18px;">➔</span>
+            </button>
+        </div>
+
+        <div id="result-container"></div>
+    </div>
+
+    <script>
+        async function findWorkers() {
+            const resultContainer = document.getElementById("result-container");
+            const btn = document.getElementById("submitBtn");
+            const btnOriginalHtml = btn.innerHTML;
+
+            // Loading state UI update
+            btn.innerHTML = "<span>Finding... ⏳</span>";
+            btn.disabled = true;
+            resultContainer.innerHTML = `
+                <div class="state-message">
+                    <p>⏳ Scanning for the best workers...</p>
+                </div>
+            `;
+
+            try {
+                const job = {
+                    description: document.getElementById("desc").value,
+                    budget: Number(document.getElementById("budget").value),
+                    requiredSkill: document.getElementById("skill").value,
+                    location: document.getElementById("location").value
+                };
+
+                const response = await fetch("http://localhost:4000/api/process-job", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ job })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.topWorkers || data.topWorkers.length === 0) {
+                    resultContainer.innerHTML = `
+                        <div class="state-message">
+                            <span style="font-size: 24px;">📭</span>
+                            <p style="margin-top: 8px; color: var(--text-dark); font-weight: 500;">No workers found</p>
+                            <p style="font-size: 14px; margin-top: 4px;">Try expanding your location or budget requirements.</p>
+                        </div>
+                    `;
+                } else {
+                    let output = `<h2 class="section-title">Top ${data.topWorkers.length} Matches Found ✨</h2>`;
+
+                    data.topWorkers.forEach((worker, index) => {
+                        // Using a simple staggered animation logic inside the style tag
+                        output += `
+                        <div class="worker-card" style="animation-delay: ${index * 0.15}s">
+                            <div class="worker-header">
+                                <div class="worker-name">${worker.name}</div>
+                                <div class="worker-badge">
+                                    <span>⭐</span> ${Number(worker.rating).toFixed(1)}
+                                </div>
+                            </div>
+                            
+                            <div class="worker-details">
+                                <div class="detail-item">
+                                    <span class="detail-icon">📍</span>
+                                    <span>${worker.location || 'Anywhere'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">🛠️</span>
+                                    <span style="text-transform: capitalize;">${worker.skills ? worker.skills.join(', ') : 'General'}</span>
+                                </div>
+                            </div>
+
+                            <div class="score-pill">
+                                <span>🔥 Match Score:</span>
+                                <span style="color: var(--primary);">${worker.score}</span>
+                            </div>
+                        </div>
+                        `;
+                    });
+
+                    resultContainer.innerHTML = output;
+                }
+            } catch (err) {
+                console.error("FRONTEND ERROR:", err.message);
+                resultContainer.innerHTML = `
+                    <div class="state-message state-error">
+                        <span style="font-size: 24px;">❌</span>
+                        <p style="margin-top: 8px; font-weight: 600;">Connection Error</p>
+                        <p style="font-size: 14px; margin-top: 4px;">Could not reach the server right now.</p>
+                    </div>
+                `;
+            } finally {
+                // Restore submit button state
+                btn.innerHTML = btnOriginalHtml;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>
