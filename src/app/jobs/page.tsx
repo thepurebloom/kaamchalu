@@ -1,151 +1,145 @@
 "use client";
-import LogoutButton from "@/components/LogoutButton";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Job } from "@/lib/types";
 import Toast from "@/components/Toast";
+import { jobService } from "@/lib/services/jobService";
+import { bookingService } from "@/lib/services/bookingService";
+import { userService } from "@/lib/services/userService";
 import { workerService } from "@/lib/services/workerService";
 import { getStatusBadgeClasses } from "@/lib/badge";
 
-export default function JobsPage() {
+export default function AllJobsPage() {
     const router = useRouter();
     const [jobs, setJobs] = useState<Job[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [bookingLoading, setBookingLoading] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
-        setToast({ message, type });
-    };
-
     useEffect(() => {
-        const checkUser = async () => {
-            const { data } = await supabase.auth.getUser();
-
-            if (!data.user) {
-                router.push("/login");
-            } else {
-                fetchJobs();
-            }
-        };
-
-        checkUser();
+        fetchJobs();
     }, []);
 
     const fetchJobs = async () => {
-        // Strict mapping against new table enforcement
-        const { data, error } = await supabase.from("jobs").select("*").order("created_at", { ascending: false });
-
-        if (error) {
-            console.log("Fetch Error:", error.message);
-        } else {
+        setIsLoading(true);
+        try {
+            const data = await jobService.getJobs();
             setJobs(data as Job[]);
+        } catch (error: any) {
+            setToast({ message: "Failed to load jobs feed.", type: "error" });
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handleBookWorker = async (jobId: string, jobCategory: string, jobCity: string) => {
-        setBookingLoading(jobId);
+    const handleAutoBook = async (job: Job) => {
+        setBookingLoading(job.id);
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                showToast("Please log in to book a worker.", "error");
-                return;
-            }
-
-            // Mapped dynamically out to the city matching matrix
-            const { worker, matchType, error: matchError } = await workerService.getMatchingWorkers(jobCategory, jobCity);
-
+            const { user } = await userService.getCurrentUser();
+            
+            // 1. Find a match
+            const { worker, matchType, error: matchError } = await workerService.getMatchingWorkers(job.category, job.city);
+            
             if (matchError || !worker) {
-                showToast(matchError || "No available workers found at the moment.", "warning");
+                setToast({ message: matchError || "No workers found for this category.", type: "warning" });
                 return;
             }
 
-            try {
-                await workerService.createBooking(jobId, user.id, worker.id);
-                
-                if (matchType === 'exact') {
-                    showToast(`🎉 Successfully matched and requested an exact local worker for this job!`, "success");
-                } else if (matchType === 'category') {
-                    showToast(`✅ Found a specialized worker for this job! (Local worker not available)`, "warning");
-                } else {
-                    showToast(`⚠️ No exact match found for "${jobCategory}". A general available worker has been assigned.`, "warning");
-                }
-            } catch (bookingError: any) {
-                showToast("Failed to book worker: " + bookingError.message, "error");
-            }
+            // 2. Create the booking as 'pending'
+            await bookingService.createBooking(job.id, user.id, worker.id, "pending");
+            
+            // 3. Update job status to accepted (since worker is assigned automatically)
+            // Note: In some flows, 'accepted' means the worker claimed it.
+            // Here we'll notify the user.
+            
+            setToast({ 
+                message: `Matched with ${worker.name}! Worker notified.`, 
+                type: "success" 
+            });
+            
+            fetchJobs();
         } catch (error: any) {
-            console.error("Booking error:", error);
-            showToast("An unexpected network error occurred during booking.", "error");
+            setToast({ message: error.message || "Login to book workers.", type: "error" });
         } finally {
             setBookingLoading(null);
         }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push("/login");
-    };
-
     return (
-        <div className="min-h-screen bg-black text-white p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">All Jobs</h1>
-
-                <div className="flex gap-3">
-                    <button onClick={() => router.push("/dashboard")} className="bg-purple-600 hover:bg-purple-700 transition px-4 py-2 rounded-lg">
-                        Dashboard
-                    </button>
-
-                    <button onClick={() => router.push("/jobs/new")} className="bg-blue-600 hover:bg-blue-700 transition px-4 py-2 rounded-lg">
-                        + Post Job
-                    </button>
-
-                    <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 transition px-4 py-2 rounded-lg">
-                        Logout
-                    </button>
-                </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-                {jobs.map((job) => (
-                    <div key={job.id} className="bg-gray-900 p-5 rounded-xl border border-gray-800 flex flex-col justify-between">
-                        <div>
-                            <div className="flex justify-between items-start mb-2">
-                               <h2 className="text-xl font-bold text-white line-clamp-1">{job.title || job.category}</h2>
-                               <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${getStatusBadgeClasses(job.status)}`}>
-                                  {job.status.replace("_", " ")}
-                               </span>
-                            </div>
-                            
-                            <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">{job.category}</p>
-                            <p className="text-gray-400 mt-2 line-clamp-2">{job.description}</p>
-
-                            <div className="mt-4 text-sm text-gray-400 space-y-2">
-                                <p>📍 <span className="text-gray-300">{job.city}</span></p>
-                                <p>📅 <span className="text-gray-300">{job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'Flexible'}</span></p>
-                                <p>⏰ <span className="text-gray-300">{job.preferred_time || 'Flexible'}</span></p>
-                                <p className="text-green-400 font-semibold mt-1">💰 ₹{job.budget}</p>
-                            </div>
-                        </div>
-
-                        {job.status === "open" && (
-                            <button
-                                onClick={() => handleBookWorker(job.id, job.category, job.city)}
-                                disabled={bookingLoading === job.id}
-                                className={`mt-5 w-full py-2.5 rounded-lg font-medium transition ${bookingLoading === job.id ? "bg-gray-800 text-gray-500 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"}`}
-                            >
-                                {bookingLoading === job.id ? "Booking Worker..." : "Match Worker Automatically"}
-                            </button>
-                        )}
-                        {job.status !== "open" && (
-                            <div className="mt-5 w-full py-2.5 rounded-lg font-medium text-center border border-gray-700 bg-black/40 text-gray-500">
-                                Worker Assigned / Completed
-                            </div>
-                        )}
+        <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10">
+            <div className="max-w-7xl mx-auto">
+                <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
+                    <div>
+                        <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">Marketplace Feed</h1>
+                        <p className="text-gray-400">Discover or fulfill recent service requests.</p>
                     </div>
-                ))}
+
+                    <div className="flex gap-3">
+                        <button onClick={() => router.push("/jobs/new")} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+                            + Post a Job
+                        </button>
+                    </div>
+                </header>
+
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-40 border border-gray-800 rounded-2xl bg-gray-900/10">
+                        <div className="w-10 h-10 rounded-full border-b-2 border-t-2 border-blue-500 animate-spin"></div>
+                    </div>
+                ) : (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {jobs.map((job) => (
+                            <div key={job.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between hover:border-gray-700 transition-all group">
+                                <div>
+                                    <div className="flex justify-between items-start mb-4">
+                                       <span className={`px-2 py-1 text-[10px] font-black uppercase rounded ${getStatusBadgeClasses(job.status)}`}>
+                                          {job.status.replace("_", " ")}
+                                       </span>
+                                       <span className="text-emerald-400 font-bold">₹{job.budget}</span>
+                                    </div>
+                                    
+                                    <h2 className="text-xl font-bold text-white mb-1 group-hover:text-blue-400 transition-colors cursor-pointer" onClick={() => router.push(`/jobs/${job.id}`)}>
+                                        {job.title}
+                                    </h2>
+                                    <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-4">{job.category}</p>
+                                    <p className="text-gray-400 text-sm line-clamp-2 mb-6">{job.description}</p>
+
+                                    <div className="grid grid-cols-2 gap-4 text-[11px] text-gray-500 font-medium bg-black/40 p-4 rounded-xl border border-gray-800/50">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-gray-600 uppercase tracking-tighter">Location</span>
+                                            <span className="text-gray-300">{job.city}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-gray-600 uppercase tracking-tighter">Date</span>
+                                            <span className="text-gray-300">{job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'Flexible'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6">
+                                    {job.status === "open" ? (
+                                        <button
+                                            onClick={() => handleAutoBook(job)}
+                                            disabled={bookingLoading === job.id}
+                                            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
+                                        >
+                                            {bookingLoading === job.id ? "Matching..." : "Instant Match"}
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => router.push(`/jobs/${job.id}`)} className="w-full border border-gray-700 text-gray-400 hover:text-white py-3 rounded-xl font-bold text-sm transition-all text-center block">
+                                            View Progress
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 
-                {jobs.length === 0 && <p className="text-gray-500">No jobs posted yet.</p>}
+                {!isLoading && jobs.length === 0 && (
+                    <div className="text-center py-20 bg-gray-900/20 border border-gray-800 rounded-3xl">
+                        <p className="text-gray-500 text-lg">No jobs found in the marketplace.</p>
+                    </div>
+                )}
             </div>
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { jobService } from "@/lib/services/jobService";
 import { userService } from "@/lib/services/userService";
 import Toast from "@/components/Toast";
@@ -22,28 +23,63 @@ export default function CustomerDashboard() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
   useEffect(() => {
-    fetchMyJobs();
+    let jobChannel: any;
+    let bookingChannel: any;
+
+    const setupDashboard = async () => {
+      setIsLoading(true);
+      try {
+        const { user } = await userService.getCurrentUser();
+        await fetchMyJobs(user.id);
+
+        // Realtime Subscription for Jobs
+        jobChannel = supabase.channel('customer-jobs-dashboard')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'jobs', filter: `customer_id=eq.${user.id}` },
+            () => {
+              fetchMyJobs(user.id); // Refresh data on any changes
+            }
+          )
+          .subscribe();
+
+        // Realtime Subscription for Bookings (to see worker applications)
+        bookingChannel = supabase.channel('customer-bookings-dashboard')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'bookings', filter: `customer_id=eq.${user.id}` },
+            () => {
+              fetchMyJobs(user.id); // Refresh when workers accept/reject
+              setToast({ message: "New update on your job request!", type: "success" });
+            }
+          )
+          .subscribe();
+
+      } catch (error: any) {
+        if (error.message === "Not logged in") {
+          router.push("/login");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    setupDashboard();
+
+    return () => {
+      if (jobChannel) supabase.removeChannel(jobChannel);
+      if (bookingChannel) supabase.removeChannel(bookingChannel);
+    };
   }, []);
 
-  const fetchMyJobs = async () => {
-    setIsLoading(true);
+  const fetchMyJobs = async (userId: string) => {
     try {
-      const { user } = await userService.getCurrentUser();
-      const data = await jobService.getUserJobs(user.id);
-      
+      const data = await jobService.getUserJobs(userId);
       const jobs = data as any as DashboardJob[];
       setActiveJobs(jobs.filter(j => j.status !== 'completed'));
       setPastJobs(jobs.filter(j => j.status === 'completed'));
     } catch (error: any) {
-      console.error("Fetch Jobs Error:", error);
-      if (error.message === "Not logged in") {
-        router.push("/login");
-      } else {
-        setToast({ message: "Failed to load jobs.", type: "error" });
-      }
-
-    } finally {
-      setIsLoading(false);
+      setToast({ message: "Failed to load jobs.", type: "error" });
     }
   };
 
@@ -79,7 +115,6 @@ export default function CustomerDashboard() {
           </div>
         ) : (
           <div className="space-y-12">
-            {/* Active Bookings Section */}
             <section>
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
                  <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -125,9 +160,8 @@ export default function CustomerDashboard() {
               )}
             </section>
 
-            {/* Past Jobs Section */}
             <section>
-              <h2 className="text-2xl font-bold mb-6 text-gray-400">Past Jobs</h2>
+              <h2 className="text-2xl font-bold mb-6 text-gray-400 font-medium">History</h2>
               
               {pastJobs.length === 0 ? (
                 <div className="bg-gray-900/10 border border-gray-800/20 p-8 rounded-2xl text-center">
@@ -141,11 +175,11 @@ export default function CustomerDashboard() {
                         <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md bg-gray-800 text-gray-400">
                           {job.status}
                         </span>
-                        <p className="text-xs font-semibold text-gray-600 uppercase">{job.category}</p>
+                        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{job.category}</p>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-300 mb-2">{job.title}</h3>
+                      <h3 className="text-lg font-bold text-gray-300 mb-2 line-clamp-1">{job.title}</h3>
                       <div className="flex items-center justify-between text-sm text-gray-500">
-                         <span>Worker: {getWorkerInfo(job)}</span>
+                         <span>With {getWorkerInfo(job)}</span>
                          <span className="text-yellow-500">★★★★★</span>
                       </div>
                     </Link>

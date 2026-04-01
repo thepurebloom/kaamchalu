@@ -52,7 +52,7 @@ export default function JobDetailPage() {
          }
       }
     } catch (error: any) {
-      setToast({ message: "Failed to load job details. Make sure you are logged in.", type: "error" });
+      setToast({ message: "Job not found or access denied.", type: "error" });
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +62,7 @@ export default function JobDetailPage() {
     setActionLoading(true);
     try {
       await bookingService.confirmBooking(bookingId, id as string);
-      setToast({ message: "Worker confirmed successfully!", type: "success" });
+      setToast({ message: "Worker confirmed! The job is now official.", type: "success" });
       fetchJobDetails();
     } catch (error: any) {
       setToast({ message: error.message, type: "error" });
@@ -75,7 +75,7 @@ export default function JobDetailPage() {
     setActionLoading(true);
     try {
       await jobService.updateJobStatus(id as string, "in_progress");
-      setToast({ message: "Job is now in progress!", type: "success" });
+      setToast({ message: "Job is now live!", type: "success" });
       fetchJobDetails();
     } catch (error: any) {
       setToast({ message: error.message, type: "error" });
@@ -87,13 +87,13 @@ export default function JobDetailPage() {
   const handleCompleteJob = async () => {
     setActionLoading(true);
     try {
-      const confirmedBooking = job?.bookings.find((b) => ["confirmed", "in_progress"].includes(b.status));
+      const confirmedBooking = job?.bookings.find((b) => ["confirmed", "in_progress", "completed"].includes(b.status));
       if (!confirmedBooking) throw new Error("No active booking found.");
 
       await jobService.updateJobStatus(id as string, "completed");
       await bookingService.updateBookingStatus(confirmedBooking.id, "completed");
 
-      setToast({ message: "Job completed successfully!", type: "success" });
+      setToast({ message: "Task completed! Please leave a review.", type: "success" });
       fetchJobDetails();
     } catch (error: any) {
       setToast({ message: error.message, type: "error" });
@@ -107,20 +107,13 @@ export default function JobDetailPage() {
     setActionLoading(true);
     try {
       const confirmedBooking = job.bookings.find((b) => b.status === "completed");
-      if (!confirmedBooking) throw new Error("Booking must be completed before rating.");
+      if (!confirmedBooking) throw new Error("Job must be completed to rate.");
 
       const targetId = userProfile.role === "customer" ? confirmedBooking.worker_id : confirmedBooking.customer_id;
       
-      await bookingService.rateBooking(
-         confirmedBooking.id, 
-         userProfile.id, 
-         targetId, 
-         ratingValue, 
-         reviewText
-      );
-      
+      await bookingService.rateBooking(confirmedBooking.id, userProfile.id, targetId, ratingValue, reviewText);
       setIsRated(true);
-      setToast({ message: "Rating submitted successfully!", type: "success" });
+      setToast({ message: "Thank you for your feedback!", type: "success" });
     } catch (error: any) {
       setToast({ message: error.message, type: "error" });
     } finally {
@@ -130,174 +123,187 @@ export default function JobDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
         <div className="w-12 h-12 rounded-full border-b-2 border-t-2 border-blue-500 animate-spin"></div>
       </div>
     );
   }
 
-  if (!job) {
-    return (
-      <div className="min-h-screen text-white p-10 text-center flex flex-col items-center justify-center">
-        <h1 className="text-3xl font-bold mb-4">Job Not Found</h1>
-        <button onClick={() => router.push("/")} className="text-blue-500 underline">Return Home</button>
-      </div>
-    );
-  }
+  if (!job) return null;
+
+  const isCustomer = userProfile?.role === "customer";
+  const activeBooking = job.bookings.find(b => ["confirmed", "in_progress", "completed"].includes(b.status));
 
   return (
-    <div className="min-h-screen text-white p-6 md:p-10 max-w-4xl mx-auto space-y-8">
-      {/* Job Details Header */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-xl">
-         <div className="flex justify-between items-start mb-6">
-            <div>
-              <span className={`px-3 py-1 text-xs font-black uppercase tracking-widest rounded-md mb-4 inline-block ${getStatusBadgeClasses(job.status)}`}>
-                {job.status.replace("_", " ")}
-              </span>
-              <h1 className="text-3xl font-bold text-white mb-2">{job.title}</h1>
-              <p className="text-gray-400 max-w-2xl">{job.description}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold text-emerald-400">₹{job.budget}</span>
-            </div>
-         </div>
+    <div className="min-h-screen text-white bg-[#0a0a0a] p-6 md:p-10">
+      <div className="max-w-4xl mx-auto space-y-10">
+        
+        {/* Navigation Breadcrumb */}
+        <button onClick={() => router.back()} className="text-gray-500 hover:text-white transition-colors flex items-center gap-2 text-sm font-medium">
+          ← Go Back
+        </button>
 
-         <div className="flex flex-wrap gap-4 text-sm">
-           <div className="bg-black/50 px-4 py-2 rounded-lg border border-gray-800 flex items-center gap-2">
-              <span>📍</span> <span className="text-gray-300">{job.city}</span>
-           </div>
-           <div className="bg-black/50 px-4 py-2 rounded-lg border border-gray-800 flex items-center gap-2">
-              <span>📅</span> <span className="text-gray-300">{job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : "Flexible"}</span>
-           </div>
-           <div className="bg-black/50 px-4 py-2 rounded-lg border border-gray-800 flex items-center gap-2">
-              <span>⏰</span> <span className="text-gray-300">{job.preferred_time || "Flexible"}</span>
-           </div>
-         </div>
-      </div>
-
-      {/* Dynamic UI based on Job Status */}
-      <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 shadow-xl">
-         {job.status === "open" && (
-           <div className="text-center py-12">
-              <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl animate-pulse">📡</div>
-              <h2 className="text-2xl font-bold mb-2">Finding workers...</h2>
-              <p className="text-gray-400">This job is active. We'll notify you when someone accepts.</p>
-           </div>
-         )}
-
-         {job.status === "accepted" && (
-           <div>
-              <h2 className="text-2xl font-bold mb-6">Workers who accepted</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {job.bookings.filter(b => b.status === "accepted").map(booking => (
-                  <div key={booking.id} className="bg-black border border-gray-700 rounded-xl p-5 flex flex-col justify-between">
-                     <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="font-bold text-lg">{booking.worker?.name || "Anonymous Worker"}</h3>
-                          <p className="text-sm text-gray-500 mt-1">{booking.worker?.category || "General Worker"}</p>
-                        </div>
-                     </div>
-                     
-                     {userProfile?.role === "customer" && (
-                       <button
-                         onClick={() => handleConfirmWorker(booking.id)}
-                         disabled={actionLoading}
-                         className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 rounded-lg font-bold transition active:scale-95 mt-4"
-                       >
-                         {actionLoading ? "Confirming..." : "Confirm Worker"}
-                       </button>
-                     )}
-                  </div>
-                ))}
-                {job.bookings.filter(b => b.status === "accepted").length === 0 && (
-                   <p className="text-gray-500 col-span-2">No active workers found at the moment.</p>
-                )}
+        {/* Job Header */}
+        <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 blur-[100px] pointer-events-none group-hover:bg-blue-600/10 transition-all duration-700"></div>
+           
+           <div className="flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
+              <div className="space-y-4">
+                <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border ${getStatusBadgeClasses(job.status)}`}>
+                  {job.status.replace("_", " ")}
+                </span>
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white">{job.title}</h1>
+                <p className="text-gray-400 text-lg leading-relaxed max-w-2xl">{job.description}</p>
+              </div>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-6 py-4 text-center">
+                <p className="text-xs font-bold text-emerald-500/70 uppercase tracking-widest mb-1">Total Budget</p>
+                <span className="text-3xl font-black text-emerald-400">₹{job.budget}</span>
               </div>
            </div>
-         )}
 
-         {job.status === "confirmed" && (() => {
-             const confirmedBooking = job.bookings.find(b => b.status === "confirmed");
-             return (
-               <div className="text-center py-10">
-                  <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">🤝</div>
-                  <h2 className="text-2xl font-bold mb-2">{confirmedBooking?.worker?.name || "Worker"} is confirmed!</h2>
-                  <p className="text-gray-400 mb-8">Ready to fulfill this request.</p>
-                  
-                  {userProfile?.role === "customer" && (
-                     <button
-                       onClick={handleStartJob}
-                       disabled={actionLoading}
-                       className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-10 py-3 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.2)] transition active:scale-95"
-                     >
-                       {actionLoading ? "Starting..." : "Start Job Now"}
-                     </button>
-                  )}
-               </div>
-             );
-         })()}
-
-         {job.status === "in_progress" && (() => {
-             const confirmedBooking = job.bookings.find(b => ["in_progress", "confirmed"].includes(b.status));
-             return (
-               <div className="text-center py-10">
-                  <div className="w-20 h-20 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl animate-pulse">🛠️</div>
-                  <h2 className="text-2xl font-bold mb-2">Job in progress</h2>
-                  <p className="text-gray-400 mb-8">Worker Contact: {confirmedBooking?.worker?.name || "Worker"}</p>
-                  
-                  {userProfile?.role === "customer" && (
-                     <button
-                       onClick={handleCompleteJob}
-                       disabled={actionLoading}
-                       className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-10 py-3 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(59,130,246,0.2)] transition active:scale-95"
-                     >
-                       {actionLoading ? "Completing..." : "Complete Job"}
-                     </button>
-                  )}
-               </div>
-             );
-         })()}
-
-         {job.status === "completed" && (
-           <div className="text-center py-10 bg-black/40 rounded-2xl border border-gray-800">
-              <div className="w-20 h-20 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">🌟</div>
-              <h2 className="text-2xl font-bold mb-2">Job Signed Off</h2>
-              
-              {!isRated ? (
-                 <div className="mt-6 max-w-sm mx-auto bg-gray-900 border border-gray-700 p-6 rounded-2xl shadow-xl">
-                    <p className="text-gray-400 mb-4 font-semibold">Rate your experience</p>
-                    <div className="flex justify-center gap-3 text-4xl text-gray-600 cursor-pointer mb-6">
-                       {[1,2,3,4,5].map(star => (
-                         <span 
-                           key={star} 
-                           onClick={() => setRatingValue(star)}
-                           className={`hover:text-yellow-500 transition-colors ${ratingValue >= star ? "text-yellow-500" : ""}`}
-                         >
-                           ★
-                         </span>
-                       ))}
-                    </div>
-                    <textarea 
-                       className="w-full bg-black/50 border border-gray-700 focus:border-yellow-500 outline-none rounded-xl p-3 text-sm text-white mb-4 resize-none h-24 transition-colors" 
-                       placeholder="Leave a quick review (optional)"
-                       value={reviewText}
-                       onChange={(e) => setReviewText(e.target.value)}
-                     />
-                    <button 
-                       onClick={handleRate} 
-                       disabled={ratingValue === 0 || actionLoading}
-                       className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 py-3 rounded-xl font-bold text-white transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)]"
-                    >
-                       {actionLoading ? "Submitting..." : "Submit Rating"}
-                    </button>
-                 </div>
-              ) : (
-                 <div className="mt-8 max-w-sm mx-auto border border-green-500/30 bg-green-500/10 p-4 rounded-xl text-green-400 font-bold flex items-center justify-center gap-2">
-                    <span className="text-xl">✓</span> Review Submitted Successfully
-                 </div>
-              )}
+           <div className="grid md:grid-cols-3 gap-6 mt-12 pt-8 border-t border-gray-800/50">
+              <div className="flex flex-col gap-2">
+                 <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Service City</span>
+                 <span className="text-white font-semibold flex items-center gap-2 text-lg">📍 {job.city}</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                 <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Scheduled Date</span>
+                 <span className="text-white font-semibold flex items-center gap-2 text-lg">📅 {job.preferred_date ? new Date(job.preferred_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : "Flexible"}</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                 <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Time Preference</span>
+                 <span className="text-white font-semibold flex items-center gap-2 text-lg">⏰ {job.preferred_time || "Flexible"}</span>
+              </div>
            </div>
-         )}
+        </div>
+
+        {/* Dynamic Workflow Engine */}
+        <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 md:p-12 shadow-2xl">
+           
+           {/* Phase 1: Open Search */}
+           {job.status === "open" && (
+             <div className="text-center py-20">
+                <div className="w-24 h-24 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-8 text-4xl animate-pulse">📡</div>
+                <h2 className="text-3xl font-black mb-4">Finding Professionals...</h2>
+                <p className="text-gray-500 text-lg max-w-md mx-auto">Your request is broadcasted to verified workers in {job.city}. You will be notified once they start accepting.</p>
+             </div>
+           )}
+
+           {/* Phase 2: Selection */}
+           {job.status === "accepted" && (
+             <div>
+                <h2 className="text-3xl font-black mb-8 border-b border-gray-800 pb-6">Professional Applicants</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {job.bookings.filter(b => b.status === "accepted").map(booking => (
+                    <div key={booking.id} className="bg-black border border-gray-800 rounded-2xl p-6 hover:border-blue-500/50 transition-all group">
+                       <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-4">
+                             <div className="w-14 h-14 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center text-xl font-bold">
+                                {booking.worker?.name?.charAt(0) || "W"}
+                             </div>
+                             <div>
+                                <h3 className="font-bold text-xl group-hover:text-blue-400 transition-colors">{booking.worker?.name || "Verified Worker"}</h3>
+                                <p className="text-sm text-gray-500 capitalize">{booking.worker?.category || "Pro Partner"}</p>
+                             </div>
+                          </div>
+                          <div className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-lg text-xs font-black">★★★★★</div>
+                       </div>
+                       
+                       {isCustomer && (
+                         <button
+                           onClick={() => handleConfirmWorker(booking.id)}
+                           disabled={actionLoading}
+                           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-4 rounded-xl font-black text-sm tracking-widest uppercase transition active:scale-[0.98] shadow-lg shadow-blue-900/20"
+                         >
+                           {actionLoading ? "Processing..." : "Select This Partner"}
+                         </button>
+                       )}
+                    </div>
+                  ))}
+                </div>
+             </div>
+           )}
+
+           {/* Phase 3: Confirmed Match */}
+           {job.status === "confirmed" && (
+             <div className="text-center py-10">
+                <div className="w-24 h-24 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 text-4xl">🤝</div>
+                <h2 className="text-3xl font-black mb-4">It's a Match!</h2>
+                <p className="text-gray-400 text-lg mb-10">**{activeBooking?.worker?.name}** is ready to help you. Review the details below and start the workflow whenever you are ready.</p>
+                
+                {isCustomer && (
+                   <button
+                     onClick={handleStartJob}
+                     disabled={actionLoading}
+                     className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-12 py-4 rounded-2xl font-black text-lg tracking-widest uppercase transition active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+                   >
+                     {actionLoading ? "Starting..." : "Start Progress Now"}
+                   </button>
+                )}
+             </div>
+           )}
+
+           {/* Phase 4: Active Work */}
+           {job.status === "in_progress" && (
+             <div className="text-center py-10">
+                <div className="w-24 h-24 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-8 text-4xl animate-spin-slow">🛠️</div>
+                <h2 className="text-3xl font-black mb-4">Work In Progress</h2>
+                <p className="text-gray-400 text-lg mb-10">Safety First! Professional partner **{activeBooking?.worker?.name}** is currently on-site fulfilling your request.</p>
+                
+                {(isCustomer || userProfile?.id === activeBooking?.worker_id) && (
+                   <button
+                     onClick={handleCompleteJob}
+                     disabled={actionLoading}
+                     className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-12 py-4 rounded-2xl font-black text-lg tracking-widest uppercase transition active:scale-95 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
+                   >
+                     {actionLoading ? "Finalizing..." : "Mark as Completed"}
+                   </button>
+                )}
+             </div>
+           )}
+
+           {/* Phase 5: Completion & Rating */}
+           {job.status === "completed" && (
+             <div className="text-center py-2 relative overflow-hidden">
+                <div className="w-24 h-24 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-8 text-4xl">🏆</div>
+                <h2 className="text-4xl font-black mb-4">Mission Accomplished!</h2>
+                <p className="text-gray-500 text-lg mb-12">The job is finished. How was your experience with {isCustomer ? activeBooking?.worker?.name : "the customer"}?</p>
+                
+                {!isRated ? (
+                   <div className="max-w-md mx-auto bg-black/60 border border-gray-800 p-8 rounded-3xl shadow-2xl backdrop-blur-xl">
+                      <div className="flex justify-center gap-4 text-5xl text-gray-700 mb-8">
+                         {[1,2,3,4,5].map(star => (
+                           <span 
+                             key={star} 
+                             onClick={() => setRatingValue(star)}
+                             className={`hover:text-yellow-500 transition-all transform hover:scale-110 cursor-pointer ${ratingValue >= star ? "text-yellow-500 scale-110" : ""}`}
+                           >
+                             ★
+                           </span>
+                         ))}
+                      </div>
+                      <textarea 
+                         className="w-full bg-gray-900 border border-gray-800 focus:border-yellow-500 outline-none rounded-2xl p-4 text-white mb-6 resize-none h-32 transition-all" 
+                         placeholder="Leave a short review (optional)..."
+                         value={reviewText}
+                         onChange={(e) => setReviewText(e.target.value)}
+                       />
+                      <button 
+                         onClick={handleRate} 
+                         disabled={ratingValue === 0 || actionLoading}
+                         className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 py-4 rounded-2xl font-black uppercase tracking-widest text-white transition-all shadow-[0_10px_20px_rgba(234,179,8,0.3)]"
+                      >
+                         {actionLoading ? "Submitting..." : "Submit My Review"}
+                      </button>
+                   </div>
+                ) : (
+                   <div className="inline-flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-full text-emerald-400 font-black tracking-widest uppercase text-sm">
+                      <span className="text-xl">✓</span> Feedback Locked
+                   </div>
+                )}
+             </div>
+           )}
+        </div>
       </div>
       
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
