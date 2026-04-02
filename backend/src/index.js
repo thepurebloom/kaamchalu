@@ -14,6 +14,7 @@ app.use(helmet());
 // Routes
 const authRoutes = require('./routes/auth');
 const workerRoutes = require('./routes/workers');
+const jobRoutes = require('./routes/jobs');
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
@@ -22,6 +23,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/workers', workerRoutes);
+app.use('/api/jobs', jobRoutes);
 
 // Start Server
 app.listen(PORT, () => {
