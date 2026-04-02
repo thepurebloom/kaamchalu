@@ -1,0 +1,808 @@
+{
+  "name": "Scheduled Automations",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://backend-production-b6253.up.railway.app/api/bookings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        -224
+      ],
+      "id": "654b2b57-c161-4af3-ad1f-4160376156a2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        176
+      ],
+      "id": "6cca1286-eaf0-44d1-bae7-339c0c4eb784",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        192,
+        368
+      ],
+      "id": "bd75223d-0155-4311-9460-1ccee7d6726b",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        192,
+        560
+      ],
+      "id": "10fae33a-ee11-460e-bee0-57978f4d4400",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        176,
+        736
+      ],
+      "id": "058e604d-d755-4ae3-9559-9b3d33b42681",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        176,
+        928
+      ],
+      "id": "567dc4dd-e865-49eb-83b8-31ce8f0e0918",
+      "name": "HTTP Request5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "98d6aed8-a731-440e-b85b-f162345c19c2",
+              "leftValue": "={{$json[\"scheduled_time\"]}}",
+              "rightValue": "={{$now}}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        400,
+        -16
+      ],
+      "id": "3ceff5a0-0cc0-4570-a7fc-5ca3f551ce76",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e50bbfed-8b07-4ce0-81be-7992e4d4b8c2",
+              "leftValue": "={{$json[\"bookings\"]?.length}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        176
+      ],
+      "id": "8c152f06-1df4-4cfa-b3dc-a9b9fb7bec89",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4b6cf240-a82f-42d4-8ba4-4b52b4975c9f",
+              "leftValue": "={{$json[\"created_at\"]}}",
+              "rightValue": "={{$now.minus(2, \"hours\")}}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "before"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        400,
+        560
+      ],
+      "id": "eadaa39a-99d3-49ad-a331-b5967ddda7b8",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f73e3cae-0b60-4339-b7aa-9a51e66f4ae4",
+              "leftValue": "={{$json[\"rating\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        736
+      ],
+      "id": "cd853938-193d-4971-9e4a-e9a359cd8fd7",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c23debde-82b7-492c-b777-909441c1d11d",
+              "leftValue": "={{$json[\"rating\"]}}",
+              "rightValue": "={{$now.minus(7, \"days\")}}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "before"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        928
+      ],
+      "id": "d9721056-5fd2-4191-b6b8-e086e140444e",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "subject": "No jobs today\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        384
+      ],
+      "id": "60574b4f-4758-4c7d-847c-3ef78182960b",
+      "name": "Send a message2",
+      "webhookId": "4d3d4053-472b-45ea-9a89-59207ed514cd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "backend-production-b6253.up.railway.app/api/worker",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1136,
+        144
+      ],
+      "id": "10ce52dc-cfd5-420c-a6f2-ac5c4a3870df",
+      "name": "HTTP Request6"
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"email\": \"your_email\",\n  \"password\": \"your_password\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        32,
+        -16
+      ],
+      "id": "226a7a45-89e7-4b11-ae2c-ade208621133",
+      "name": "HTTP Request7"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        128
+      ],
+      "id": "677634b3-3c64-483b-abb1-cbfef07a0b50",
+      "name": "BOOKING REMINDER"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 20
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -480,
+        320
+      ],
+      "id": "a804e154-3691-4538-a718-cd104d2a3c53",
+      "name": "DAILY WORKER SUMMARY"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -512,
+        544
+      ],
+      "id": "9a487b2c-c868-4e6b-9974-e04714228871",
+      "name": "ADMIN REPORT"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -768,
+        784
+      ],
+      "id": "ba7e79ee-d118-4eb8-be15-6f07cd27a527",
+      "name": "STALE JOB CLEANUP"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -944,
+        1024
+      ],
+      "id": "c12a5edd-b702-43c4-889a-e52acc3ad4ba",
+      "name": "RATING REMINDER"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -768,
+        1264
+      ],
+      "id": "55dbd2e1-c37b-40d0-af60-25ab9b769df1",
+      "name": "INACTIVE WORKER"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('HTTP Request7').item.json.email }}",
+        "subject": "=Your booking is tomorrow at {{$json[\"time\"]}}",
+        "message": "=Hello {{$json[\"customer_name\"]}},\n\nThis is a reminder that your booking is scheduled for tomorrow.\n\n👷 Worker: {{$json[\"worker_name\"]}}\n📍 Location: {{$json[\"location\"]}}\n🕒 Time: {{$json[\"time\"]}}\n\nPlease be available.\n\nRegards,  \nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        -80
+      ],
+      "id": "1b839530-6760-4f1d-b9b3-eeeac0d36a7f",
+      "name": "BOOKING REMINDER1",
+      "webhookId": "ce613041-19da-4116-b4a4-cd2d27f80993",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "=Your Daily Summary — {{$now}}",
+        "message": "=Hello {{$json[\"worker\"][\"name\"]}},\n\nHere is your summary for today:\n\n✅ Jobs Completed: {{$json[\"completed_count\"]}}\n📅 Upcoming Tomorrow: {{$json[\"upcoming_count\"]}}\n\nKeep up the great work!\n\nRegards,  \nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        80
+      ],
+      "id": "22913f1f-9456-4260-8d1c-1d02b2238739",
+      "name": "DAILY WORKER SUMMARY1",
+      "webhookId": "6752a474-38f3-47b4-89ce-4f6d9a3de0ab",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "=KaamChalu Daily Report — {{$now}}",
+        "message": "=Hello Admin,\n\nHere is today's platform report:\n\n👷 Active Workers: {{$json[\"total_workers\"][\"active\"]}}\n⏳ Pending Workers: {{$json[\"total_workers\"][\"pending\"]}}\n👥 Total Customers: {{$json[\"total_customers\"]}}\n\n📦 Bookings Yesterday: {{$json[\"bookings\"][\"yesterday\"]}}\n📊 Completion Rate: {{$json[\"completion_rate\"]}}%\n\n⚠️ Open Disputes: {{$json[\"open_disputes\"]}}\n\nRegards,  \nKaamChalu System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        368
+      ],
+      "id": "090bf50b-f766-44c7-b52a-e8d9537c097b",
+      "name": "KaamChalu Daily Report",
+      "webhookId": "1c65ddc9-062f-4222-9e7d-d716827a8d65",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Job Expired — Please Try Again",
+        "message": "=Hello {{$json[\"customer_name\"]}},\n\nWe couldn't find a worker for your request.\n\n📌 Job Category: {{$json[\"category\"]}}\n\nPlease try posting again with a different time or location.\n\nWe’re here to help!\n\nRegards,  \nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        464
+      ],
+      "id": "b8614938-6057-40e7-bef8-8494214da884",
+      "name": "STALE JOB CLEANUP1",
+      "webhookId": "ccf2a32c-726d-479c-8572-8110891bbfca",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Rate Your Recent Service ⭐",
+        "message": "=Hello {{$json[\"customer_name\"]}},\n\nYou recently completed a job.\n\n👷 Worker: {{$json[\"worker_name\"]}}\n📌 Service: {{$json[\"category\"]}}\n\nWe would love your feedback.\n\n👉 Please rate your experience here: [Add Link]\n\nThank you!\n\nRegards,  \nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        640
+      ],
+      "id": "908e1a01-8d43-4f2f-904c-3f99ab018f9f",
+      "name": "RATING REMINDER1",
+      "webhookId": "d0ec02a9-6591-41ac-94fa-eab50754adf9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "We Miss You at KaamChalu 👋",
+        "message": "=Hello {{$json[\"name\"]}},\n\nWe haven’t seen you active for a while.\n\nUpdate your availability so customers can find you and assign jobs.\n\nLet’s get you back to work!\n\nRegards,  \nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        832
+      ],
+      "id": "eac8166f-9ee3-4965-aa6f-cd3f27ac7564",
+      "name": "INACTIVE WORKER1",
+      "webhookId": "4e5f39ea-e3c3-480e-bcae-7e7eb7848e1b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        608
+      ],
+      "id": "2ffcaa56-1af1-46ed-96fa-7c87596d8a01",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        464
+      ],
+      "id": "eaf1aaa6-e557-4d86-9821-0bf129a016f5",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "KaamChalu Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "BOOKING REMINDER1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "DAILY WORKER SUMMARY1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "STALE JOB CLEANUP1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "RATING REMINDER1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "INACTIVE WORKER1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request7": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BOOKING REMINDER": {
+      "main": [
+        []
+      ]
+    },
+    "DAILY WORKER SUMMARY": {
+      "main": [
+        []
+      ]
+    },
+    "ADMIN REPORT": {
+      "main": [
+        []
+      ]
+    },
+    "STALE JOB CLEANUP": {
+      "main": [
+        []
+      ]
+    },
+    "RATING REMINDER": {
+      "main": [
+        []
+      ]
+    },
+    "INACTIVE WORKER": {
+      "main": [
+        []
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "36ad87d5-0c7a-4d68-b679-776a3ce1cd52",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c53ffa9173ecf76b35b9bea5d037a670548aace05b04526f78a983ed138cb07"
+  },
+  "id": "YHOpyo611neN39vA",
+  "tags": []
+}

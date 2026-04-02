@@ -1,0 +1,562 @@
+{
+  "name": "The Pure Bloom",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "event-router",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        80
+      ],
+      "id": "296a0f67-8f82-4591-89dc-ba167526b80b",
+      "name": "Webhook",
+      "webhookId": "9e41af1b-36ea-4c02-9a80-4b163788b3fe"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "=job_posted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8ed26c1a-04ed-48b2-bb97-84f2247a13e5"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "74729289-8e65-4d9d-a5de-0ef3f5b9b7d2",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "=worker_accepted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "7fb6b50f-c4bc-42dc-89a6-e130079217da",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "booking_confirmed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "dbf90196-0344-4b96-b0e3-71f230f0cf58",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "booking_started",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "11b870af-af0b-4867-be91-30f0110526a6",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "booking_completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f4da5fcd-06e2-44fc-bc97-18859c4b3939",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "booking_cancelled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5e1afd8e-dc11-4039-b32c-b4dbb7203d68",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "worker_approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6bcaa3ea-03fe-4b68-8672-bb2c3724c56e",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "worker_rejected",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2d4b7080-bbbd-4ca1-a95f-a4559db125a2",
+                    "leftValue": "={{$json[\"event\"]}}",
+                    "rightValue": "dispute_raised",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        352,
+        -96
+      ],
+      "id": "4e5cfe47-3a9e-4d06-8d72-e2d21b20810a",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "New Job Alert",
+        "message": "=Hello {worker_name},\n\nA new job is available in your area.\n\nCategory: {job_category}\nLocation: {location}\nBudget: ₹{budget}\n\nClick below to accept the job.\n\nThanks,\nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -688
+      ],
+      "id": "c78b1e46-a298-468e-a37b-12b2c47223ac",
+      "name": "Send a message",
+      "webhookId": "5f8f623b-6e26-4c53-a35b-fad89bbc0d96",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "\"A worker is available for your job!\"",
+        "message": "=\"Hi {{ $json.data.customer_name }},\n\n{{ $json.data.worker_name }} (★ {{ $json.data.worker_rating }}, ₹{{ $json.data.worker_rate }}/hr) is available for your job.\n\nLog in to KaamChalu to confirm the booking.\n\n    — KaamChalu Team\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        -496
+      ],
+      "id": "6c69fc59-a353-47d2-bc56-d9ef65adb812",
+      "name": "Send a message1",
+      "webhookId": "9704fe70-be9f-433c-a384-57298573a613",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Booking Confirmed",
+        "message": "=Hello {customer_name} / {worker_name},\n\nYour booking is confirmed.\n\nDate: {date}\nTime: {time}\nLocation: {location}\n\nThank you,\nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        -272
+      ],
+      "id": "98f99eb6-2aed-4bb0-b98f-314b2461aa48",
+      "name": "Send a message2",
+      "webhookId": "105af17f-3052-41e9-96c4-5b13132f7e75",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Your Job Has Started",
+        "message": "=Hello {customer_name},\n\nYour job has now started.\n\n🛠 Worker: {worker_name}\n📍 Location: {location}\n🕒 Time: {time}\n\nThe worker has arrived and begun the work.\n\nIf you have any issues, you can contact support or raise a concern anytime.\n\nThank you for using KaamChalu.\n\nBest regards,\nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        -144
+      ],
+      "id": "b6bbdc47-054a-415b-9041-2afde1e98caa",
+      "name": "Send a message3",
+      "webhookId": "d90c9389-6c71-4b63-8e63-ac1d72c6f2f6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Job Completed",
+        "message": "=Hello {customer_name},\n\nYour job has been successfully completed. ✅\n\n🛠 Worker: {worker_name}\n📍 Location: {location}\n🕒 Completed At: {completion_time}\n\nWe hope the work was done to your satisfaction.\n\n⭐ Please take a moment to rate your experience:\n{rating_link}\n\nYour feedback helps us improve and ensures better service.\n\nThank you for choosing KaamChalu!\n\nBest regards,\nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        32
+      ],
+      "id": "99a76e89-a5a7-4e9f-b6a0-795e2a30e3ff",
+      "name": "Send a message4",
+      "webhookId": "15245c26-cfd1-4f07-aa74-2c517dc2163e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Booking Cancelled – {job_category}",
+        "message": "=Hello {customer_name},\n\nYour booking has been cancelled. \n\n🛠 Worker: {worker_name}\n📍 Location: {location}\n🕒 Scheduled Time: {time}\n\nReason for cancellation: {cancellation_reason}\n\nIf you still need help, you can post the job again anytime.\n\nWe apologize for any inconvenience caused.\n\nBest regards,\nKaamChalu Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        112
+      ],
+      "id": "6b223c6f-3971-4612-be87-8eb9fd24b344",
+      "name": "Send a message5",
+      "webhookId": "9bca50d0-d62b-437e-9044-baa6d6fb4364",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Profile Approved 🎉",
+        "message": "=Hello {worker_name},\n\nYour profile has been approved.\n\nYou can now start receiving jobs.\n\nWelcome!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        272
+      ],
+      "id": "6c2ff932-c084-4c82-92d1-f2e517b0e9f9",
+      "name": "Send a message6",
+      "webhookId": "919edb9f-028b-4ec0-9903-0140eafb38fa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Profile Update",
+        "message": "=Hello {worker_name},\n\nYour profile was not approved.\n\nReason: {reason}\n\nPlease update and reapply",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        320
+      ],
+      "id": "f901908e-4081-489c-93b9-b981399224dd",
+      "name": "Send a message7",
+      "webhookId": "4939e337-279c-4bca-bcbe-e153e001f0d6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anmolchourasia.10@gmail.com",
+        "subject": "Your Dispute Has Been Received – {job_category}",
+        "message": "=Hello {customer_name},\n\nWe have received your dispute request regarding the completed job.\n\n🛠 Worker: {worker_name}\n📍 Location: {location}\n🆔 Booking ID: {booking_id}\n\n📝 Issue Reported:\n{issue_description}\n\nOur support team will review the issue and get back to you shortly.\n\nThank you for your patience.\n\nBest regards,\nKaamChalu Support Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        416
+      ],
+      "id": "940f97c9-4f10-449a-bf84-803b09d64d79",
+      "name": "Send a message8",
+      "webhookId": "e5951c47-ace9-4118-9d7a-29fd3423b1d0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GQBtxW0zSWer02m9",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -288
+      ],
+      "id": "5e71505d-606b-4754-91cb-c96d574083b7",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "eba3661d-2f65-4a61-af09-5ce1d79dab16",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c53ffa9173ecf76b35b9bea5d037a670548aace05b04526f78a983ed138cb07"
+  },
+  "id": "YXqyhOOMuMi1Ic5k",
+  "tags": []
+}
