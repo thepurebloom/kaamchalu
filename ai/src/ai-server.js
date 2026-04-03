@@ -1,31 +1,13 @@
 import express from "express";
 import cors from "cors";
 
+import { scoreUrgency } from "./urgency-scorer.js";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const PORT = 5000;
-
-// 🔥 Urgency logic
-function scoreUrgency(description) {
-    const text = description.toLowerCase();
-
-    if (
-        text.includes("leak") ||
-        text.includes("urgent") ||
-        text.includes("broken") ||
-        text.includes("immediately")
-    ) {
-        return "urgent";
-    }
-
-    if (text.includes("later") || text.includes("whenever")) {
-        return "flexible";
-    }
-
-    return "normal";
-}
 
 // ✅ Health check
 app.get("/", (req, res) => {
@@ -33,12 +15,18 @@ app.get("/", (req, res) => {
 });
 
 // ✅ AI API
-app.post("/api/ai/score-urgency", (req, res) => {
-    const { description } = req.body;
+app.post("/api/ai/score-urgency", async (req, res) => {
+    try {
+        const { description } = req.body;
+        console.log("📥 AI Server: Received score-urgency request");
 
-    const urgency = scoreUrgency(description);
+        const urgency = await scoreUrgency(description);
 
-    res.json({ urgency });
+        res.json({ urgency });
+    } catch (err) {
+        console.error("❌ AI Server score-urgency error:", err);
+        res.status(500).json({ error: 'Failed to score urgency', details: err.message });
+    }
 });
 
 // 🚀 Start server with port fallback
