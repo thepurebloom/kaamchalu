@@ -1,0 +1,12 @@
+{
+  "name": "kaamchalu-root",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "concurrently \"npm run --prefix ai dev\" \"npm run --prefix backend dev\"",
+    "install-all": "npm install && cd ai && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -40,6 +40,14 @@
             padding: 40px 20px;
         }
 
+        .scrollable-area {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .container {
             width: 100%;
             max-width: 500px;
@@ -55,6 +63,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, #1e293b, var(--primary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 8px;
         }
@@ -253,8 +262,17 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            margin-top: 16px;
             font-size: 14px;
+        }
+
+        .worker-reason {
+            font-size: 13px;
+            color: var(--primary);
+            margin-bottom: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* Animations */
@@ -278,6 +296,132 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Skeleton Screens */
+        .skeleton-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .skeleton-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-title {
+            width: 60%;
+            height: 18px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton-badge {
+            width: 40px;
+            height: 18px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton-line {
+            width: 100%;
+            height: 12px;
+            background: #f1f5f9;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton-line.short {
+            width: 40%;
+        }
+
+        .skeleton-title::after,
+        .skeleton-badge::after,
+        .skeleton-line::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        .badge-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .badge-fake {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fee2e2;
+        }
+
+        .badge-real {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #dcfce7;
+        }
+
+        .verified-request-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f0fdf4;
+            color: #15803d;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-left: 8px;
+            border: 1px solid #dcfce7;
         }
     </style>
 </head>
@@ -316,71 +460,185 @@
                 <span>Find Workers</span>
                 <span style="font-size: 18px;">➔</span>
             </button>
+
+            <button onclick="fetchHistory()" style="width: 100%; margin-top: 12px; background: none; border: none; font-size: 14px; font-weight: 500; color: var(--text-light); text-decoration: underline; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <span>📜 View Matching History</span>
+            </button>
         </div>
 
+        <div id="history-container" style="display: none; margin-bottom: 30px;"></div>
         <div id="result-container"></div>
     </div>
 
     <script>
+        function showSkeletons() {
+            const container = document.getElementById("result-container");
+            let skeletonHtml = '<h2 class="section-title">Searching for matches...</h2>';
+            for (let i = 0; i < 3; i++) {
+                skeletonHtml += `
+                <div class="skeleton-card">
+                    <div class="skeleton-header">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-badge"></div>
+                    </div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                </div>`;
+            }
+            container.innerHTML = skeletonHtml;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || "";
+            return div.innerHTML;
+        }
+
+        function contactWorker(name, phone = '919999999999') {
+            if (!phone) {
+                alert("Contact information currently unavailable for this worker.");
+                return;
+            }
+            const encodedName = encodeURIComponent(name);
+            const message = encodeURIComponent(`Hi ${name}, I found you on KaamChalu. Are you available?`);
+            alert(`Connect with ${name} via WhatsApp? \n\nOpening secure chat link...`);
+            window.open(`https://wa.me/${phone}?text=${message}`);
+        }
+
+        async function checkFakeReview(description, skill, location, budget) {
+            try {
+                const response = await fetch("http://127.0.0.1:4000/api/ai/detect-fake-review", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        text: description,
+                        skill: skill,
+                        location: location,
+                        budget: budget
+                    })
+                });
+                if (!response.ok) throw new Error("Verification service unavailable");
+                return await response.json();
+            } catch (err) {
+                console.error("Fake Check Error:", err);
+                return { status: "error", message: err.message };
+            }
+        }
+
         async function findWorkers() {
             const resultContainer = document.getElementById("result-container");
             const btn = document.getElementById("submitBtn");
             const btnOriginalHtml = btn.innerHTML;
 
+            const desc = document.getElementById("desc").value.trim();
+            const skill = document.getElementById("skill").value.trim();
+            const budget = document.getElementById("budget").value;
+            const location = document.getElementById("location").value.trim();
+
+            if (!desc || !skill) {
+                alert("Please fill in what you need and the service type!");
+                return;
+            }
+
             // Loading state UI update
-            btn.innerHTML = "<span>Finding... ⏳</span>";
+            btn.innerHTML = '<div class="spinner"></div> <span>Verifying...</span>';
             btn.disabled = true;
-            resultContainer.innerHTML = `
-                <div class="state-message">
-                    <p>⏳ Scanning for the best workers...</p>
-                </div>
-            `;
+            resultContainer.innerHTML = ''; // Clear previous results
 
             try {
+                // 1. Check for Fake Review first
+                const fakeCheck = await checkFakeReview(desc, skill, location, budget);
+                
+                // If specific job is done, we might want to refresh history if it's open
+                const historyContainer = document.getElementById("history-container");
+                if (historyContainer.style.display === "block") {
+                    fetchHistory();
+                }
+
+                if (fakeCheck.status === "error") {
+                    resultContainer.innerHTML = `
+                        <div class="badge-status badge-fake">
+                            <span>⚠️</span>
+                            <span>Unable to verify request. Try again.</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (fakeCheck.status === "fake") {
+                    resultContainer.innerHTML = `
+                        <div class="badge-status badge-fake">
+                            <span>⚠️</span>
+                            <span>This request looks suspicious or spam.</span>
+                        </div>
+                        <div class="state-message">
+                            <p>Our AI has flagged this request as potentially dishonest or robotic.</p>
+                            <p style="margin-top: 8px; font-size: 13px;">Please rewrite your request with more detail and less promotional language.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 2. If Real, show success and proceed
+                const statusBadgeHtml = `
+                    <div class="badge-status badge-real">
+                        <span>✅</span>
+                        <span>Genuine request verified</span>
+                    </div>
+                `;
+                
+                // Show skeletons and status
+                btn.innerHTML = '<div class="spinner"></div> <span>Finding...</span>';
+                resultContainer.innerHTML = statusBadgeHtml;
+                showSkeletons();
+
+                const startTime = Date.now();
                 const job = {
-                    description: document.getElementById("desc").value,
-                    budget: Number(document.getElementById("budget").value),
-                    requiredSkill: document.getElementById("skill").value,
-                    location: document.getElementById("location").value
+                    description: desc,
+                    budget: Number(budget) || 0,
+                    requiredSkill: skill,
+                    location: location
                 };
 
-                const response = await fetch("http://localhost:4000/api/process-job", {
+                const response = await fetch("http://127.0.0.1:4000/api/process-job", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ job })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Server status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Server status: ${response.status}`);
 
                 const data = await response.json();
 
+                // Perception loading
+                const elapsedTime = Date.now() - startTime;
+                if (elapsedTime < 800) await new Promise(r => setTimeout(r, 800 - elapsedTime));
+
                 if (!data.topWorkers || data.topWorkers.length === 0) {
-                    resultContainer.innerHTML = `
+                    resultContainer.innerHTML = statusBadgeHtml + `
                         <div class="state-message">
-                            <span style="font-size: 24px;">📭</span>
-                            <p style="margin-top: 8px; color: var(--text-dark); font-weight: 500;">No workers found</p>
-                            <p style="font-size: 14px; margin-top: 4px;">Try expanding your location or budget requirements.</p>
+                            <span style="font-size: 32px;">📭</span>
+                            <p style="margin-top: 12px; color: var(--text-dark); font-weight: 600; font-size: 18px;">No matches found</p>
+                            <p style="font-size: 15px; margin-top: 4px; color: var(--text-light);">Try adjusting your requirements or searching in a nearby area.</p>
                         </div>
                     `;
                 } else {
-                    let output = `<h2 class="section-title">Top ${data.topWorkers.length} Matches Found ✨</h2>`;
+                    let output = statusBadgeHtml + `<h2 class="section-title">Found ${data.topWorkers.length} Professional Matches ✨</h2>`;
 
                     data.topWorkers.forEach((worker, index) => {
-                        // Using a simple staggered animation logic inside the style tag
                         output += `
-                        <div class="worker-card" style="animation-delay: ${index * 0.15}s">
+                        <div class="worker-card" style="animation-delay: ${index * 0.1}s">
                             <div class="worker-header">
-                                <div class="worker-name">${worker.name}</div>
+                                <div class="worker-name">
+                                    ${worker.name}
+                                    <span class="verified-request-badge">Verified Request</span>
+                                </div>
                                 <div class="worker-badge">
                                     <span>⭐</span> ${Number(worker.rating).toFixed(1)}
                                 </div>
                             </div>
                             
-                            <div class="worker-details">
+                            <div class="worker-details" style="margin-bottom: 12px;">
                                 <div class="detail-item">
                                     <span class="detail-icon">📍</span>
                                     <span>${worker.location || 'Anywhere'}</span>
@@ -391,9 +649,19 @@
                                 </div>
                             </div>
 
-                            <div class="score-pill">
-                                <span>🔥 Match Score:</span>
-                                <span style="color: var(--primary);">${worker.score}</span>
+                            <div class="worker-reason">
+                                <span>💡</span>
+                                <span>${worker.reason || 'Best match for your request'}</span>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="score-pill">
+                                    <span>Match Score</span>
+                                    <span style="color: var(--primary); font-weight: 700;">${worker.score}%</span>
+                                </div>
+                                <button class="btn-submit" onclick="contactWorker('${worker.name}', '${worker.phone || ''}')" style="width: auto; padding: 8px 16px; font-size: 14px; background: #f1f5f9; color: var(--text-dark); box-shadow: none; border: 1px solid var(--border);">
+                                    Contact
+                                </button>
                             </div>
                         </div>
                         `;
@@ -405,15 +673,134 @@
                 console.error("FRONTEND ERROR:", err.message);
                 resultContainer.innerHTML = `
                     <div class="state-message state-error">
-                        <span style="font-size: 24px;">❌</span>
-                        <p style="margin-top: 8px; font-weight: 600;">Connection Error</p>
-                        <p style="font-size: 14px; margin-top: 4px;">Could not reach the server right now.</p>
+                        <span style="font-size: 32px;">⚠️</span>
+                        <p style="margin-top: 12px; font-weight: 700; font-size: 18px; color: #b91c1c;">Connection Problem</p>
+                        <p style="font-size: 15px; margin-top: 4px;">Unable to reach the matching engine.</p>
+                        <div style="margin-top: 16px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; font-size: 13px;">
+                            An error occurred while processing your request. Please try again later.
+                        </div>
+                        <p style="font-size: 13px; margin-top: 16px; color: var(--text-light);">Please ensure the server is running and try again.</p>
                     </div>
                 `;
             } finally {
-                // Restore submit button state
                 btn.innerHTML = btnOriginalHtml;
                 btn.disabled = false;
+            }
+        }
+        async function deleteHistoryItem(id, elementId) {
+            if (!confirm("Are you sure you want to delete this history item?")) return;
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:4000/api/jobs/${id}`, {
+                    method: "DELETE"
+                });
+                if (!response.ok) throw new Error("Delete failed");
+                
+                // Remove from UI
+                const el = document.getElementById(elementId);
+                el.style.opacity = "0";
+                el.style.transform = "translateX(20px)";
+                setTimeout(() => el.remove(), 300);
+            } catch (err) {
+                alert("Error deleting: " + err.message);
+            }
+        }
+
+        async function fetchHistory(selectedSkill = "all") {
+            const historyContainer = document.getElementById("history-container");
+            const resultContainer = document.getElementById("result-container");
+            
+            if (selectedSkill === "all") {
+                // If just clicking the link (not filtering), toggle
+                if (historyContainer.style.display === "block" && historyContainer.dataset.lastFilter === "all") {
+                    historyContainer.style.display = "none";
+                    return;
+                }
+            }
+
+            try {
+                historyContainer.innerHTML = '<div class="state-message">Loading history...</div>';
+                historyContainer.style.display = "block";
+                historyContainer.dataset.lastFilter = selectedSkill;
+                resultContainer.innerHTML = ""; 
+
+                const url = selectedSkill === "all" ? "http://127.0.0.1:4000/api/jobs" : `http://127.0.0.1:4000/api/jobs?skill=${selectedSkill}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("History unavailable");
+                const data = await response.json();
+
+                // Derive unique skills for the filter
+                const uniqueSkills = [...new Set(data.map(j => (j.skill || 'n/a').toLowerCase()))].sort();
+                let skillOptions = `<option value="all" ${selectedSkill === 'all' ? 'selected' : ''}>All Skills</option>`;
+                uniqueSkills.forEach(s => {
+                    skillOptions += `<option value="${s}" ${selectedSkill === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`;
+                });
+
+                let filterHtml = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h2 class="section-title" style="margin-bottom: 0;">Job History</h2>
+                        <select onchange="fetchHistory(this.value)" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; background: white; cursor: pointer; outline: none; text-transform: capitalize;">
+                            ${skillOptions}
+                        </select>
+                    </div>
+                `;
+
+                if (data.length === 0) {
+                    historyContainer.innerHTML = filterHtml + '<div class="state-message">No history found for this filter.</div>';
+                    return;
+                }
+
+                let historyHtml = filterHtml;
+                data.forEach(job => {
+                    const urgencyClass = job.urgency === "urgent" ? "badge-fake" : (job.urgency === "normal" ? "score-pill" : "badge-real");
+                    const statusText = job.is_fake === "fake" ? "🚩 Fake" : "✅ Genuine";
+                    const statusClass = job.is_fake === "fake" ? "badge-fake" : "badge-real";
+                    const workerNames = job.matched_workers && job.matched_workers.length > 0
+                        ? job.matched_workers.map(w => escapeHtml(w.name)).join(", ")
+                        : "No matches";
+                    const elementId = `history-item-${job.id}`;
+
+                    historyHtml += `
+                    <div class="worker-card" id="${elementId}" style="border-left: 4px solid ${job.is_fake === 'fake' ? '#ef4444' : '#22c55e'}; transition: all 0.3s ease;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                             <div style="font-size: 12px; color: var(--text-light); font-weight: 500;">
+                                 ${new Date(job.created_at).toLocaleString()}
+                             </div>
+                             <div style="display: flex; gap: 6px;">
+                                <div class="badge-status ${statusClass}" style="padding: 2px 8px; font-size: 11px; margin-bottom: 0;">
+                                    ${statusText}
+                                 </div>
+                                 <button onclick="deleteHistoryItem(${job.id}, '${elementId}')" style="background: none; border: none; font-size: 14px; cursor: pointer; color: #ef4444; padding: 0 4px;" title="Delete">
+                                    🗑️
+                                 </button>
+                             </div>
+                        </div>
+
+                        <div style="font-weight: 600; margin-bottom: 8px;">${escapeHtml(job.description)}</div>
+                        
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                             <div class="badge-status ${urgencyClass}" style="padding: 2px 8px; font-size: 11px; margin-bottom: 0; text-transform: capitalize;">
+                                ${escapeHtml(job.urgency)} Priority
+                             </div>
+                             <div class="score-pill" style="padding: 2px 8px; font-size: 11px;">
+                                ${escapeHtml(job.skill)} | ₹${Number(job.budget).toLocaleString()}
+                             </div>
+                        </div>
+
+                        <div style="font-size: 13px; color: var(--text-light);">
+                            <strong>Matched:</strong> ${workerNames}
+                        </div>
+                    </div>
+                    `;
+                });
+                historyContainer.innerHTML = historyHtml + `
+                    <button onclick="document.getElementById('history-container').style.display='none'" style="width: 100%; padding: 12px; border: 1px dashed var(--border); background: #f8fafc; border-radius: 8px; color: var(--text-light); cursor: pointer; margin-top: 10px;">
+                        Close History
+                    </button>
+                    <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+                `;
+            } catch (err) {
+                historyContainer.innerHTML = `<div class="state-message state-error">Error: ${err.message}</div>`;
             }
         }
     </script>
