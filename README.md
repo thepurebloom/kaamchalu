@@ -1,63 +1,61 @@
-# KaamChalu 🚀
+# KaamChalu
 
-KaamChalu is a professional service marketplace application connecting customers with skilled workers. Built with a modern, high-performance tech stack, it provides a seamless experience for posting jobs, finding workers, and managing service bookings.
+> India's Platform for Skilled Workers
 
-## 🌟 Features
+KaamChalu connects blue-collar workers (plumbers, electricians, maids, drivers, cooks, etc.) with customers who need their services in Indian cities.
 
-- **Role-based Dashboards:** Dedicated experiences for Customers (to post jobs and manage requests) and Workers (to view and accept/reject bookings).
-- **Secure Authentication:** Password-based authentication integrated directly with Supabase Auth.
-- **Job Matchmaking:** Smart logic matching customer job requests with appropriate workers.
-- **Real-Time Booking Status:** Track bookings through pending, accepted, and rejected stages.
-- **Responsive UI:** A modern, dark-themed responsive interface built entirely with Tailwind CSS.
+## Project Structure
 
-## 💻 Tech Stack
-
-- **Framework:** [Next.js 14 (App Router)](https://nextjs.org/)
-- **Database & Auth:** [Supabase](https://supabase.com/)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **Language:** TypeScript
-
-## 📂 Folder Structure
-
-```text
-├── src/
-│   ├── app/                # Next.js App Router (Pages & API)
-│   │   ├── dashboard/      # Protected role-based dashboards (Customer/Worker)
-│   │   ├── jobs/           # Job listing and creation
-│   │   ├── login/          # User login
-│   │   └── signup/         # User registration with role selection
-│   ├── components/         # Reusable React components
-│   └── lib/                # Config files (e.g., Supabase client initialized)
-├── .env.local              # Environment variables (Ignored in Git)
-├── supabase_schema.sql     # Database setup instructions
-└── tailwind.config.ts      # Tailwind CSS configuration
+```
+kaamchalu/
+├── frontend/          ← Customer + Worker web app (Next.js, Vercel) — Intern 1
+├── backend/           ← API server (Express, Railway) — Intern 2
+├── ai/                ← AI microservice (Gemini, Railway) — Intern 4
+├── admin/             ← Admin panel (Next.js, Vercel) — Intern 4
+├── automations/       ← n8n workflow exports — Intern 3
+├── docs/              ← API docs, DB docs, workflow docs — Everyone reads
+└── guides/            ← Intern guides and project playbook
 ```
 
-## 🚀 Setup Instructions
+## Tech Stack
 
-1. **Clone the repository:**
-   ```bash
-   git clone <your-github-repo-url>
-   cd frontend
-   ```
+| Layer | Tool |
+|-------|------|
+| Database + Auth | Supabase (Postgres, Phone OTP, RLS, Storage) |
+| Frontend | Next.js 14 + Tailwind CSS on Vercel |
+| Backend API | Node.js (Express) on Railway |
+| Automations | n8n (cloud or self-hosted) |
+| AI | Google Gemini API (free tier) |
+| Admin Panel | Next.js + Tailwind + Chart.js on Vercel |
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+## Team
 
-3. **Environment Setup:**
-   Create a `.env.local` file in the root directory and add your Supabase credentials:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
+| Role | Responsibility |
+|------|---------------|
+| **Intern 1 — Frontend** | All customer + worker facing web pages |
+| **Intern 2 — Backend** | Database, API, auth, deployments |
+| **Intern 3 — Automation** | n8n workflows, notifications, scheduled jobs |
+| **Intern 4 — AI + Admin** | AI scoring/matching, admin dashboard |
 
-4. **Database Setup:**
-   Run the `supabase_schema.sql` script inside your Supabase SQL Editor to configure the necessary `profiles`, `jobs`, and `bookings` tables with Row Level Security (RLS) triggers.
+## Getting Started
 
-5. **Run the Development Server:**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) with your browser to see the app running live.
+1. Read the [PRD](docs/PRD.md) first
+2. Read your role-specific guide in `guides/`
+3. Set up your accounts (see your guide)
+4. Start building!
+
+## Links
+
+- **Frontend**: _not deployed yet_
+- **Backend API**: _not deployed yet_
+- **Admin Panel**: _not deployed yet_
+- **n8n**: _not set up yet_
+- **Supabase**: _not set up yet_
+
+## Git Rules
+
+1. Never push to `main` directly
+2. Create a branch: `your-name/feature-name`
+3. Create a Pull Request → get reviewed → merge
+4. Pull from main every morning
+5. Commit messages: describe WHAT and WHY
