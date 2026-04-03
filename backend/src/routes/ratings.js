@@ -99,7 +99,10 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     // 5. Trigger n8n webhook
-    callWebhook('rating_received', { rating: newRating });
+    callWebhook("rating_given", {
+      booking_id: booking_id,
+      score: score
+    });
 
     res.status(201).json({ success: true, rating: newRating });
   } catch (err) {

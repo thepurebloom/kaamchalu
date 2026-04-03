@@ -7,14 +7,16 @@
  * @param {string} event - The event name e.g 'booking_started'
  * @param {object} data - Dynamic JSON data payload
  */
-const callWebhook = async (event, data) => {
+const callWebhook = (event, data) => {
   const webhookUrl = process.env.N8N_WEBHOOK_URL;
   if (!webhookUrl) {
     console.warn(`[Webhook Logger] N8N_WEBHOOK_URL is not set. Skipping event: ${event}`);
     return;
   }
 
-  // Fire and forget
+  console.log("🚀 Sending webhook:", event, data);
+
+  // Fire and forget (no await)
   try {
     fetch(webhookUrl, {
       method: "POST",

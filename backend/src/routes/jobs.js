@@ -48,7 +48,11 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         // Trigger n8n webhook
-        callWebhook('job_posted', { job });
+        callWebhook('job_posted', {
+            job_id: job.id,
+            customer_id: req.user.id,
+            category: job.category
+        });
 
         res.status(201).json({ success: true, job });
     } catch (err) {
@@ -237,7 +241,10 @@ router.post('/:id/apply', authMiddleware, async (req, res) => {
 
         if (error) return res.status(400).json({ success: false, error: error.message });
 
-        callWebhook('worker_accepted', { job_id: jobId, worker_id: req.user.id, customer_id: job.customer_id });
+        callWebhook("worker_accepted", {
+            job_id: jobId,
+            worker_id: req.user.id
+        });
 
         res.status(201).json({ success: true, application: app });
     } catch (err) {
@@ -287,7 +294,11 @@ router.post('/:id/confirm', authMiddleware, async (req, res) => {
 
         if (bookingError) return res.status(400).json({ success: false, error: bookingError.message });
 
-        callWebhook('booking_confirmed', { job_id: jobId, worker_id, booking_id: booking.id });
+        callWebhook("booking_confirmed", {
+            booking_id: booking.id,
+            customer_id: req.user.id,
+            worker_id: worker_id
+        });
 
         res.status(201).json({ success: true, booking });
     } catch (err) {

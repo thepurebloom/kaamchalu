@@ -153,7 +153,10 @@ router.patch('/:id', authMiddleware, async (req, res) => {
         }
 
         // Trigger Event logic for webhooks
-        callWebhook(`booking_${action}`, { booking_id: bookingId, action, user_id: req.user.id, reason });
+        callWebhook("booking_updated", {
+            booking_id: updatedBooking.id,
+            status: updatedBooking.status
+        });
 
         res.status(200).json({ success: true, booking: updatedBooking });
 
