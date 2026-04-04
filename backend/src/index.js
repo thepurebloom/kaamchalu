@@ -16,6 +16,9 @@ const authRoutes = require('./routes/auth');
 const workerRoutes = require('./routes/workers');
 const jobRoutes = require('./routes/jobs');
 const bookingRoutes = require('./routes/bookings');
+const adminRoutes = require('./routes/admin');
+const ratingsRoutes = require('./routes/ratings');
+const notificationsRoutes = require('./routes/notifications');
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
@@ -26,6 +29,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/workers', workerRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/ratings', ratingsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Start Server
 app.listen(PORT, () => {
