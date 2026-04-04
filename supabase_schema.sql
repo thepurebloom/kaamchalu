@@ -153,11 +153,15 @@ CREATE TRIGGER update_bookings_updated_at
     FOR EACH ROW
     EXECUTE PROCEDURE update_updated_at_column();
 
--- Enable Realtime for bookings table
+-- Enable Realtime for bookings and jobs table
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;
 
--- Enable Row Level Security (RLS)
+-- Enable Row Level Security (RLS) for bookings
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+
+-- Enable Row Level Security (RLS) for jobs
+ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies to allow clean recreation
 DROP POLICY IF EXISTS "Customer can insert bookings" ON public.bookings;
@@ -165,6 +169,27 @@ DROP POLICY IF EXISTS "Customer can view own bookings" ON public.bookings;
 DROP POLICY IF EXISTS "Worker can view bookings assigned to them" ON public.bookings;
 DROP POLICY IF EXISTS "Worker can update booking status" ON public.bookings;
 DROP POLICY IF EXISTS "Customer can update own booking" ON public.bookings;
+
+DROP POLICY IF EXISTS "Users can view jobs" ON public.jobs;
+DROP POLICY IF EXISTS "Users can insert jobs" ON public.jobs;
+DROP POLICY IF EXISTS "Users can update their own jobs" ON public.jobs;
+DROP POLICY IF EXISTS "Users can delete their own jobs" ON public.jobs;
+
+CREATE POLICY "Users can view jobs"
+  ON public.jobs FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can insert jobs"
+  ON public.jobs FOR INSERT
+  WITH CHECK (auth.uid() = customer_id);
+
+CREATE POLICY "Users can update their own jobs"
+  ON public.jobs FOR UPDATE
+  USING (auth.uid() = customer_id);
+
+CREATE POLICY "Users can delete their own jobs"
+  ON public.jobs FOR DELETE
+  USING (auth.uid() = customer_id);
 
 -- 1. Customer can insert bookings
 CREATE POLICY "Customer can insert bookings"

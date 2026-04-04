@@ -60,7 +60,7 @@ export const bookingService = {
       .update({ status: "rejected" })
       .eq("job_id", jobId)
       .neq("id", bookingId)
-      .eq("status", "accepted");
+      .in("status", ["pending", "accepted"]);
 
     // 3. Update job to confirmed
     const { error: jobError } = await supabase

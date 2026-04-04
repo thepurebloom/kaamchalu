@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Toast from "@/components/Toast";
 import { getStatusBadgeClasses } from "@/lib/badge";
@@ -24,6 +25,7 @@ interface Booking {
 }
 
 export default function WorkerDashboard() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);

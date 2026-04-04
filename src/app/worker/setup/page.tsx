@@ -28,7 +28,7 @@ export default function WorkerSetupPage() {
       
       const { data } = await supabase
         .from("profiles")
-        .select("name, category, location, experience, price")
+        .select("name, category, city, experience, price")
         .eq("id", user.id)
         .single();
         
@@ -36,7 +36,7 @@ export default function WorkerSetupPage() {
         setFormData({
           name: data.name || "",
           category: data.category || "",
-          city: data.location || "", // Map to location
+          city: data.city || "", // Map to city
           experience: data.experience?.toString() || "",
           price: data.price?.toString() || ""
         });
@@ -77,7 +77,7 @@ export default function WorkerSetupPage() {
         .update({
           name: formData.name,
           category: formData.category,
-          location: formData.city, // Storing 'city' as 'location' in the DB
+          city: formData.city, // Storing 'city' directly
           experience: Number(formData.experience),
           price: Number(formData.price)
         })
