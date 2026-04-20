@@ -1,0 +1,253 @@
+-- 1. Create Profiles Table safely
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT NOT NULL,
+  role TEXT CHECK (role IN ('customer', 'worker')) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS experience INTEGER;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS price NUMERIC;
+
+-- Safely port legacy column 'location' to 'city' if it exists
+DO $$ 
+BEGIN 
+  IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='profiles' and column_name='location') THEN
+      EXECUTE 'UPDATE public.profiles SET city = location WHERE city IS NULL AND location IS NOT NULL';
+      EXECUTE 'ALTER TABLE public.profiles DROP COLUMN location';
+  END IF;
+END $$;
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to allow clean recreation
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+
+-- 2. Create RLS Policies
+CREATE POLICY "Users can read own profile"
+  ON public.profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile"
+  ON public.profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+  ON public.profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+
+-- 3. Create Trigger Function for Auto-Profile Creation
+-- This function runs automatically whenever a new user signs up in Supabase Auth.
+-- SECURITY DEFINER allows it to insert even if RLS normally wouldn't allow the anonymous signup request to insert.
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, role)
+  VALUES (
+    NEW.id, 
+    NEW.email,
+    -- We extract 'role' from the user metadata provided during signup
+    COALESCE(NEW.raw_user_meta_data->>'role', 'customer') 
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- 4. Attach the Trigger to auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+
+-- Note: Keep your bookings and jobs modifications from before:
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS preferred_date DATE;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS preferred_time TEXT;
+
+-- Safely copy legacy data using DO block to prevent query compilation errors if columns don't exist
+DO $$ 
+BEGIN 
+  IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='jobs' and column_name='date') THEN
+      EXECUTE 'UPDATE public.jobs SET preferred_date = date WHERE preferred_date IS NULL AND date IS NOT NULL';
+  END IF;
+  
+  IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='jobs' and column_name='time') THEN
+      EXECUTE 'UPDATE public.jobs SET preferred_time = time WHERE preferred_time IS NULL AND time IS NOT NULL';
+  END IF;
+END $$;
+
+ALTER TABLE public.jobs DROP COLUMN IF EXISTS date;
+ALTER TABLE public.jobs DROP COLUMN IF EXISTS time;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS budget INTEGER;
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open';
+-- Safely update constraint if status column already existed with strict check
+DO $$ 
+DECLARE
+  con text;
+BEGIN
+  FOR con IN SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name = 'jobs' AND column_name = 'status' LOOP
+    EXECUTE 'ALTER TABLE public.jobs DROP CONSTRAINT IF EXISTS ' || con;
+  END LOOP;
+END $$;
+ALTER TABLE public.jobs ADD CONSTRAINT jobs_status_check CHECK (status IN ('open', 'accepted', 'confirmed', 'in_progress', 'completed'));
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+-- Real Marketplace DB Standardization Scripts
+-- 1. Safely port any legacy 'location' data before dropping
+DO $$ 
+BEGIN 
+  IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='jobs' and column_name='location') THEN
+      EXECUTE 'UPDATE public.jobs SET city = location WHERE city IS NULL AND location IS NOT NULL';
+      EXECUTE 'ALTER TABLE public.jobs DROP COLUMN location';
+  END IF;
+END $$;
+
+-- 3. Scrub bad legacy data / uncomplete form ghosts 
+DELETE FROM public.jobs WHERE city IS NULL OR title IS NULL OR category IS NULL OR preferred_date IS NULL;
+
+-- 4. Enforce strict constraint for future pipeline integrity
+ALTER TABLE public.jobs ALTER COLUMN city SET NOT NULL;
+ALTER TABLE public.jobs ALTER COLUMN title SET NOT NULL;
+ALTER TABLE public.jobs ALTER COLUMN category SET NOT NULL;
+ALTER TABLE public.jobs ALTER COLUMN preferred_date SET NOT NULL;
+
+-- Re-create bookings table
+DROP TABLE IF EXISTS public.bookings CASCADE;
+
+CREATE TABLE public.bookings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  worker_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  job_id UUID NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'rejected', 'confirmed', 'completed')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Function to automatically update the updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger for bookings table updated_at
+DROP TRIGGER IF EXISTS update_bookings_updated_at ON public.bookings;
+CREATE TRIGGER update_bookings_updated_at
+    BEFORE UPDATE ON public.bookings
+    FOR EACH ROW
+    EXECUTE PROCEDURE update_updated_at_column();
+
+-- Enable Realtime for bookings and jobs table
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;
+
+-- Enable Row Level Security (RLS) for bookings
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+
+-- Enable Row Level Security (RLS) for jobs
+ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to allow clean recreation
+DROP POLICY IF EXISTS "Customer can insert bookings" ON public.bookings;
+DROP POLICY IF EXISTS "Customer can view own bookings" ON public.bookings;
+DROP POLICY IF EXISTS "Worker can view bookings assigned to them" ON public.bookings;
+DROP POLICY IF EXISTS "Worker can update booking status" ON public.bookings;
+DROP POLICY IF EXISTS "Customer can update own booking" ON public.bookings;
+
+DROP POLICY IF EXISTS "Users can view jobs" ON public.jobs;
+DROP POLICY IF EXISTS "Users can insert jobs" ON public.jobs;
+DROP POLICY IF EXISTS "Users can update their own jobs" ON public.jobs;
+DROP POLICY IF EXISTS "Users can delete their own jobs" ON public.jobs;
+
+CREATE POLICY "Users can view jobs"
+  ON public.jobs FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can insert jobs"
+  ON public.jobs FOR INSERT
+  WITH CHECK (auth.uid() = customer_id);
+
+CREATE POLICY "Users can update their own jobs"
+  ON public.jobs FOR UPDATE
+  USING (auth.uid() = customer_id);
+
+CREATE POLICY "Users can delete their own jobs"
+  ON public.jobs FOR DELETE
+  USING (auth.uid() = customer_id);
+
+-- 1. Customer can insert bookings
+CREATE POLICY "Customer can insert bookings"
+  ON public.bookings FOR INSERT
+  WITH CHECK (auth.uid() = customer_id);
+
+-- 2. Customer can view own bookings
+CREATE POLICY "Customer can view own bookings"
+  ON public.bookings FOR SELECT
+  USING (auth.uid() = customer_id);
+
+-- 3. Worker can view bookings assigned to them
+CREATE POLICY "Worker can view bookings assigned to them"
+  ON public.bookings FOR SELECT
+  USING (auth.uid() = worker_id);
+
+-- 4. Worker can update booking status
+CREATE POLICY "Worker can update booking status"
+  ON public.bookings FOR UPDATE
+  USING (auth.uid() = worker_id)
+  WITH CHECK (auth.uid() = worker_id);
+
+-- 5. Customer can update booking status
+CREATE POLICY "Customer can update own booking"
+  ON public.bookings FOR UPDATE
+  USING (auth.uid() = customer_id)
+  WITH CHECK (auth.uid() = customer_id);
+
+-- ----------------------------------------------------------------------------
+-- RATINGS TABLE FOR REVIEWS
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.ratings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  reviewer_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  reviewee_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  review_text TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(booking_id, reviewer_id)
+);
+
+ALTER TABLE public.ratings ENABLE ROW LEVEL SECURITY;
+
+-- Prevent duplicated ratings by using a unique constraint
+DROP POLICY IF EXISTS "Users can insert ratings" ON public.ratings;
+CREATE POLICY "Users can insert ratings"
+  ON public.ratings FOR INSERT
+  WITH CHECK (
+    auth.uid() = reviewer_id AND 
+    EXISTS (
+      SELECT 1 FROM public.bookings b 
+      WHERE b.id = booking_id AND b.status = 'completed' AND 
+            (b.customer_id = auth.uid() OR b.worker_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Anyone can view ratings" ON public.ratings;
+CREATE POLICY "Anyone can view ratings"
+  ON public.ratings FOR SELECT
+  USING (true);
