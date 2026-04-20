@@ -26,6 +26,7 @@ export const dbReady = new Promise((resolve, reject) => {
           location TEXT,
           budget INTEGER,
           urgency TEXT,
+          confidence REAL,
           is_fake TEXT,
           matched_workers TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -36,8 +37,11 @@ export const dbReady = new Promise((resolve, reject) => {
           console.error("❌ Table creation error:", err.message);
           reject(err);
         } else {
-          console.log("✅ Jobs table ready");
-          resolve(dbInstance);
+          // Attempt to add new column if table existed but was old schema (fail silently if it already exists)
+          dbInstance.run("ALTER TABLE jobs ADD COLUMN confidence REAL", () => {
+             console.log("✅ Jobs table ready and schema updated");
+             resolve(dbInstance);
+          });
         }
       });
     }
@@ -55,16 +59,16 @@ async function getDb() {
 export async function saveJob(jobData) {
   const db = await getDb();
   return new Promise((resolve, reject) => {
-    const { description, skill, location, budget, urgency, is_fake, matched_workers } = jobData;
+    const { description, skill, location, budget, urgency, confidence, is_fake, matched_workers } = jobData;
     const sql = `
-      INSERT INTO jobs (description, skill, location, budget, urgency, is_fake, matched_workers)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO jobs (description, skill, location, budget, urgency, confidence, is_fake, matched_workers)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     // Serialize matched_workers to JSON string
     const workersJson = JSON.stringify(matched_workers || []);
 
-    db.run(sql, [description, skill, location, budget, urgency, is_fake, workersJson], function(err) {
+    db.run(sql, [description, skill, location, budget, urgency, confidence || 0.5, is_fake, workersJson], function(err) {
       if (err) {
         console.error("❌ Error saving job:", err.message);
         reject(err);
@@ -140,5 +144,25 @@ export async function deleteJob(id) {
   });
 }
 
+/**
+ * Updates the fake status of a job.
+ */
+export async function updateJobFakeStatus(id, isFake) {
+  const db = await getDb();
+  return new Promise((resolve, reject) => {
+    const sql = "UPDATE jobs SET is_fake = ? WHERE id = ?";
+    db.run(sql, [isFake ? 'fake' : 'real', id], function(err) {
+      if (err) {
+        console.error("❌ Update job error:", err.message);
+        reject(err);
+      } else if (this.changes === 0) {
+        resolve({ success: false, message: "No such record found" });
+      } else {
+        resolve({ success: true });
+      }
+    });
+  });
+}
+
 // No direct export of 'db' to prevent race conditions. Always use dbReady or exported functions.
-export default { saveJob, getJobs, deleteJob, dbReady };
+export default { saveJob, getJobs, deleteJob, updateJobFakeStatus, dbReady };

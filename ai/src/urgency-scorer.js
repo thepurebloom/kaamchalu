@@ -1,128 +1,91 @@
-import fetch from "node-fetch";
+import { generateAIResponse } from "./services/aiService.js";
 
 /**
- * 1. Rule-based Pre-check (Quick Local Decisions)
- * Returns a label if a strong keyword is found, else null.
+ * 1. Hybrid Check: Rule-based Classification (Fast & Deterministic)
  */
 function getLocalUrgency(text) {
     const lower = text.toLowerCase();
     
-    // Check for "week" which indicates a non-emergency but definite timeline
-    if (lower.includes("week")) return "normal";
+    // Explicit list of highly urgent words
+    const urgentKeywords = ["urgent", "asap", "emergency", "today", "now"];
     
-    // Check for "anytime" or extremely flexible terms
-    if (lower.includes("anytime") || lower.includes("whenever") || lower.includes("someday")) return "flexible";
+    for (const word of urgentKeywords) {
+        // Ensure it's matched safely, but includes is usually fine for these specific words
+        if (lower.includes(word)) {
+            return "urgent";
+        }
+    }
     
-    // Check for strong emergency indicators
-    if (lower.includes("urgent") || lower.includes("asap") || lower.includes("emergency") || lower.includes("immediately")) return "urgent";
-    
-    return null;
+    return null; // Fallback to AI
 }
 
 /**
- * 2. Prompt Creation
- * Formats a strict prompt for the Hugging Face AI.
+ * 2. Strict Prompt for TinyLlama
+ * TinyLlama needs very constrained instructions to prevent hallucinations or stories.
  */
 function createUrgencyPrompt(description) {
-    return `Task: Classify the urgency of a job description.
-Options: "urgent", "normal", "flexible"
+    return `You are a strict classifier. Classify the job description as "urgent" or "not urgent".
+Respond with ONLY ONE valid value.
+Do NOT write sentences. Do NOT explain. 
 
-Rules:
-- "urgent": Needs immediate attention, emergency, or "ASAP".
-- "normal": Needs to be done within a few days or a specific timeframe like "next week".
-- "flexible": Can be done whenever, no rush, or "anytime".
-
-Description: "${description}"
-Response (exactly one word):`;
+Job description: "${description}"
+Format: urgent or not urgent
+Output:`;
 }
 
 /**
- * 3. Response Parsing
- * Safely extracts the label from AI response with order-of-precedence logic.
+ * 3. Safe Parsing Output
  */
-function parseAIResponse(rawText) {
-    const text = rawText.toLowerCase().trim();
-    console.log("🤖 Raw AI response:", rawText);
+function parseTinyLlamaResponse(rawText) {
+    const text = (rawText || "").toLowerCase().trim();
 
-    // Negation guard: checks if a word is preceded by a negator within a small window (approx 2 words)
-    const isNegated = (word) => {
-        const negators = ["not", "no", "never", "n't"];
-        const regex = new RegExp(`(?:\\b(?:${negators.join('|')})\\s+(?:\\w+\\s+)?\\b${word}\\b)`, "i");
-        return regex.test(text);
-    };
+    // Prioritize catching "not urgent" completely first
+    if (text.includes("not urgent")) {
+        return "not urgent";
+    }
+    if (text.includes("urgent")) {
+        return "urgent";
+    }
 
-    // Whole-word matching with negation check
-    const matches = (word) => {
-        const wordRegex = new RegExp(`\\b${word}\\b`, "i");
-        return wordRegex.test(text) && !isNegated(word);
-    };
-
-    // Order of precedence: flexible → normal → urgent
-    if (matches("flexible")) return "flexible";
-    if (matches("normal")) return "normal";
-    if (matches("urgent")) return "urgent";
-    
-    return "normal"; // default fallback
+    return "unknown"; // Fallback if hallucinated or completely wrong output
 }
 
 /**
- * Main AI Urgency Scorer
+ * 4. Main Exported Function
  */
-export async function scoreUrgency(description = "") {
-    if (!description || typeof description !== "string") return "normal";
+export async function classifyUrgency(description = "") {
+    if (!description || typeof description !== "string") return { status: "normal", confidence: 0 };
 
-    // ✅ Step 1: Rule-based check
+    // ✅ Step 1: Fast Rule-based processing
     const localResult = getLocalUrgency(description);
     if (localResult) {
         console.log(`⚡ Urgency Rule Match: ${localResult}`);
-        return localResult;
+        return { status: localResult, confidence: 1.0 };
     }
 
-    // ✅ Step 2: AI Call (Hugging Face)
+    // ✅ Step 2: TinyLlama Classification
     try {
-        const HF_KEY = process.env.HF_API_KEY?.trim();
-        if (!HF_KEY) {
-            console.warn("⚠️ No HF_API_KEY found, falling back to 'normal'");
-            return "normal";
-        }
-
-        // Using a model likely available on the router
-        const MODEL_URL = "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3";
         const prompt = createUrgencyPrompt(description);
+        const aiResponse = await generateAIResponse(prompt, "urgency");
 
-        const response = await fetch(MODEL_URL, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${HF_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                inputs: prompt,
-                parameters: { 
-                    max_new_tokens: 10,
-                    temperature: 0.1,
-                    return_full_text: false 
-                }
-            })
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`HF API status: ${response.status} - ${errorBody}`);
+        if (aiResponse?.status === "success") {
+            const urgency = parseTinyLlamaResponse(aiResponse.text);
+            
+            if (urgency === "unknown") {
+               console.warn(`⚠️ TinyLlama Hallucination Detected.`);
+               return { status: "normal", confidence: 0.3 };
+            }
+            
+            console.log(`🔥 Final AI Decision: ${urgency} (Source: ${aiResponse.source})`);
+            return { status: urgency, confidence: aiResponse.confidence || 0.85 };
         }
 
-        const data = await response.json();
-        const aiText = (Array.isArray(data) && data.length > 0) 
-            ? (data[0].generated_text || "") 
-            : (data.generated_text || "");
-        
-        const urgency = parseAIResponse(aiText || "");
-        console.log(`🔥 Final Urgency Decision: ${urgency} (based on AI)`);
-        
-        return urgency;
-
+        return { status: "normal", confidence: 0.5 }; 
     } catch (error) {
         console.error("❌ Urgency Scoring Error:", error.message);
-        return "normal"; // Robust fallback
+        return { status: "normal", confidence: 0 }; 
     }
 }
+
+// Preserve existing exports
+export const scoreUrgency = classifyUrgency;

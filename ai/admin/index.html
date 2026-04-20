@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel | AI Worker Matching</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #eef2ff;
+      --danger: #ef4444;
+      --danger-bg: #fef2f2;
+      --success: #10b981;
+      --success-bg: #ecfdf5;
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --purple: #8b5cf6;
+      --purple-bg: #f5f3ff;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 14px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+      --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ─── Layout ─── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 220px; height: 100vh;
+      background: #1e1b4b; padding: 28px 20px; display: flex; flex-direction: column; gap: 8px; z-index: 100;
+    }
+    .sidebar-logo { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+    .sidebar-logo span { background: var(--primary); border-radius: 8px; padding: 6px 10px; font-size: 18px; }
+    .nav-item {
+      padding: 10px 14px; border-radius: 8px; color: #a5b4fc; font-size: 14px; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.15s;
+    }
+    .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); color: #fff; }
+    .main { margin-left: 220px; padding: 32px; min-height: 100vh; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+    .topbar h1 { font-size: 24px; font-weight: 800; color: var(--text); }
+    .topbar-actions { display: flex; gap: 12px; }
+
+    /* ─── Buttons ─── */
+    .btn { padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+    .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
+    .btn-outline:hover { background: var(--primary-light); }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #fca5a5; }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-warn { background: var(--warning-bg); color: var(--warning); border: 1px solid #fcd34d; }
+    .btn-warn:hover { background: var(--warning); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; }
+
+    /* ─── Stats Grid ─── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+    .stat-card.blue::before { background: var(--primary); }
+    .stat-card.red::before { background: var(--danger); }
+    .stat-card.green::before { background: var(--success); }
+    .stat-card.orange::before { background: var(--warning); }
+    .stat-card.purple::before { background: var(--purple); }
+    .stat-card.teal::before { background: #14b8a6; }
+    .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+    .stat-icon.blue { background: var(--primary-light); }
+    .stat-icon.red { background: var(--danger-bg); }
+    .stat-icon.green { background: var(--success-bg); }
+    .stat-icon.orange { background: var(--warning-bg); }
+    .stat-icon.purple { background: var(--purple-bg); }
+    .stat-icon.teal { background: #f0fdfa; }
+    .stat-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ─── Charts ─── */
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 28px; }
+    .chart-card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .chart-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ─── Filters ─── */
+    .filters-bar {
+      background: var(--card); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 24px;
+      box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 140px; flex: 1; }
+    .filter-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-select, .filter-input {
+      padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 14px;
+      background: #f8fafc; color: var(--text); outline: none; font-family: inherit;
+    }
+    .filter-select:focus, .filter-input:focus { border-color: var(--primary); background: #fff; }
+
+    /* ─── Jobs List ─── */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .job-count-badge { background: var(--primary-light); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+
+    .jobs-list { display: flex; flex-direction: column; gap: 12px; }
+    .job-card {
+      background: var(--card); border-radius: var(--radius); padding: 18px 20px;
+      box-shadow: var(--shadow); border: 1px solid var(--border); border-left: 4px solid transparent;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .job-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    .job-card.urgent { border-left-color: var(--danger); }
+    .job-card.normal { border-left-color: var(--success); }
+    .job-card.fake { border-left-color: var(--warning); opacity: 0.85; }
+
+    .job-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .job-desc { font-size: 15px; font-weight: 600; color: var(--text); flex: 1; line-height: 1.4; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+    .badge-urgent { background: var(--danger-bg); color: var(--danger); border-color: #fca5a5; }
+    .badge-normal { background: var(--success-bg); color: var(--success); border-color: #6ee7b7; }
+    .badge-fake { background: var(--warning-bg); color: #92400e; border-color: #fcd34d; }
+    .badge-real { background: var(--success-bg); color: var(--success); border-color: #6ee7b7; }
+
+    .job-meta { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .job-meta span { display: flex; align-items: center; gap: 4px; }
+    .job-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border); }
+
+    /* ─── States ─── */
+    .empty-state { text-align: center; padding: 48px; color: var(--muted); background: var(--card); border-radius: var(--radius); border: 1.5px dashed var(--border); }
+    .empty-state p { margin-top: 8px; font-size: 14px; }
+    .loader-wrap { text-align: center; padding: 48px; }
+    .spinner { width: 36px; height: 36px; border: 3.5px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Toast ─── */
+    #toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
+    .toast {
+      background: #1e293b; color: #fff; padding: 12px 18px; border-radius: 10px;
+      font-size: 14px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      animation: slideIn 0.3s ease; max-width: 320px;
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .toast.info { border-left: 4px solid var(--primary); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><span>🔍</span> WorkerFinder</div>
+    <div class="nav-item active">📊 Analytics</div>
+    <div class="nav-item" onclick="window.location.href='../index.html'">🏠 Main App</div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Admin Analytics</h1>
+        <p style="color:var(--muted);font-size:14px;margin-top:2px;">Real-time job intelligence dashboard</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline" onclick="exportCSV()">⬇️ Export CSV</button>
+        <button class="btn btn-primary" onclick="refreshAll()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-icon blue">📋</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total Jobs</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon red">🔴</div>
+        <div class="stat-value" id="stat-urgent">—</div>
+        <div class="stat-label">Urgent Jobs</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon green">🟢</div>
+        <div class="stat-value" id="stat-normal">—</div>
+        <div class="stat-label">Normal Jobs</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-icon orange">🚨</div>
+        <div class="stat-value" id="stat-fake">—</div>
+        <div class="stat-label">Fake Jobs</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon purple">💰</div>
+        <div class="stat-value" id="stat-budget">—</div>
+        <div class="stat-label">Avg Budget</div>
+      </div>
+      <div class="stat-card teal">
+        <div class="stat-icon teal">🔧</div>
+        <div class="stat-value" id="stat-topskill" style="font-size:18px;text-transform:capitalize;">—</div>
+        <div class="stat-label">Top Skill</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">📈 Jobs Over Time</div>
+        <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🥧 Skill Distribution</div>
+        <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <span class="filter-label">Skill</span>
+        <select class="filter-select" id="f-skill" onchange="applyFilters()">
+          <option value="all">All Skills</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Priority</span>
+        <select class="filter-select" id="f-urgency" onchange="applyFilters()">
+          <option value="all">All Priorities</option>
+          <option value="urgent">🔴 Urgent</option>
+          <option value="normal">🟢 Normal</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Status</span>
+        <select class="filter-select" id="f-fake" onchange="applyFilters()">
+          <option value="all">All</option>
+          <option value="real">✅ Real Only</option>
+          <option value="fake">⚠️ Fake Only</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">From Date</span>
+        <input class="filter-input" type="date" id="f-from" onchange="applyFilters()" />
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">To Date</span>
+        <input class="filter-input" type="date" id="f-to" onchange="applyFilters()" />
+      </div>
+      <div class="filter-group" style="min-width:80px;flex:0;">
+        <span class="filter-label">&nbsp;</span>
+        <button class="btn btn-outline" onclick="resetFilters()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Jobs List -->
+    <div class="section-header">
+      <span class="section-title">Job Records</span>
+      <span class="job-count-badge" id="job-count-badge">0 jobs</span>
+    </div>
+    <div id="jobs-list" class="jobs-list"></div>
+  </main>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <script>
+    const API_BASE_URL = "http://localhost:4000";
+    let allJobs = [];
+    let lineChartInst = null;
+    let pieChartInst = null;
+
+    // ─── Toast ───
+    function showToast(msg, type = "info") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    // ─── Init ───
+    async function refreshAll() {
+      await Promise.all([fetchAnalytics(), loadJobs()]);
+    }
+
+    // ─── Analytics ───
+    async function fetchAnalytics() {
+      try {
+        console.log("API CALL →", `${API_BASE_URL}/api/admin/analytics`);
+        const res = await fetch(`${API_BASE_URL}/api/admin/analytics`);
+        if (!res.ok) throw new Error("Backend not reachable");
+        const data = await res.json();
+        renderStats(data);
+        renderCharts(data);
+      } catch (err) {
+        showToast("Failed to load analytics: " + err.message, "error");
+      }
+    }
+
+    function renderStats(data) {
+      document.getElementById("stat-total").textContent = data.totalJobs ?? "0";
+      document.getElementById("stat-urgent").textContent = data.urgentJobs ?? "0";
+      document.getElementById("stat-normal").textContent = data.normalJobs ?? "0";
+      document.getElementById("stat-fake").textContent = data.fakeJobs ?? "0";
+      document.getElementById("stat-budget").textContent = data.avgBudget ? `₹${data.avgBudget}` : "₹0";
+      document.getElementById("stat-topskill").textContent = data.topSkill ?? "N/A";
+    }
+
+    function renderCharts(data) {
+      // Line Chart
+      const lineCtx = document.getElementById("lineChart").getContext("2d");
+      if (lineChartInst) lineChartInst.destroy();
+      lineChartInst = new Chart(lineCtx, {
+        type: "line",
+        data: {
+          labels: (data.jobsPerDay || []).map(d => d.date),
+          datasets: [{
+            label: "Jobs",
+            data: (data.jobsPerDay || []).map(d => d.count),
+            borderColor: "#4f46e5",
+            backgroundColor: "rgba(79,70,229,0.1)",
+            borderWidth: 2.5,
+            pointBackgroundColor: "#4f46e5",
+            pointRadius: 4,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "#f1f5f9" }, ticks: { stepSize: 1 } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      // Pie Chart
+      const pieCtx = document.getElementById("pieChart").getContext("2d");
+      if (pieChartInst) pieChartInst.destroy();
+      const dist = (data.skillDistribution || []).slice(0, 6);
+      const colors = ["#4f46e5","#10b981","#f59e0b","#ef4444","#8b5cf6","#14b8a6"];
+      pieChartInst = new Chart(pieCtx, {
+        type: "doughnut",
+        data: {
+          labels: dist.map(d => d.skill),
+          datasets: [{
+            data: dist.map(d => d.count),
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: "#fff"
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { font: { size: 12 }, padding: 12 } }
+          }
+        }
+      });
+    }
+
+    // ─── Load Jobs ───
+    async function loadJobs() {
+      const container = document.getElementById("jobs-list");
+      container.innerHTML = `<div class="loader-wrap"><div class="spinner"></div><p style="color:var(--muted);font-size:14px;">Loading jobs...</p></div>`;
+
+      try {
+        console.log("API CALL →", `${API_BASE_URL}/api/jobs`);
+        const res = await fetch(`${API_BASE_URL}/api/jobs`);
+        if (!res.ok) throw new Error("Backend not reachable");
+        allJobs = await res.json();
+        populateSkillFilter();
+        applyFilters();
+      } catch (err) {
+        container.innerHTML = `<div class="empty-state">❌ <strong>Failed to load jobs</strong><p>${err.message}</p></div>`;
+        showToast("Failed to load jobs", "error");
+      }
+    }
+
+    function populateSkillFilter() {
+      const sel = document.getElementById("f-skill");
+      const cur = sel.value;
+      const skills = [...new Set(allJobs.map(j => (j.skill || "unknown").toLowerCase()))].sort();
+      sel.innerHTML = '<option value="all">All Skills</option>';
+      skills.forEach(s => {
+        const o = document.createElement("option");
+        o.value = s; o.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+        sel.appendChild(o);
+      });
+      if (skills.includes(cur)) sel.value = cur;
+    }
+
+    // ─── Filters ───
+    function applyFilters() {
+      const skill = document.getElementById("f-skill").value;
+      const urgency = document.getElementById("f-urgency").value;
+      const fakeFilter = document.getElementById("f-fake").value;
+      const fromDate = document.getElementById("f-from").value;
+      const toDate = document.getElementById("f-to").value;
+
+      let filtered = allJobs;
+
+      if (skill !== "all") filtered = filtered.filter(j => (j.skill || "").toLowerCase() === skill);
+      if (urgency !== "all") {
+        if (urgency === "urgent") filtered = filtered.filter(j => (j.urgency || "").toLowerCase() === "urgent");
+        else filtered = filtered.filter(j => (j.urgency || "").toLowerCase() !== "urgent");
+      }
+      if (fakeFilter !== "all") filtered = filtered.filter(j => (j.is_fake || "real").toLowerCase() === fakeFilter);
+      if (fromDate) filtered = filtered.filter(j => (j.created_at || "").slice(0, 10) >= fromDate);
+      if (toDate) filtered = filtered.filter(j => (j.created_at || "").slice(0, 10) <= toDate);
+
+      document.getElementById("job-count-badge").textContent = `${filtered.length} job${filtered.length !== 1 ? "s" : ""}`;
+      renderJobs(filtered);
+    }
+
+    function resetFilters() {
+      document.getElementById("f-skill").value = "all";
+      document.getElementById("f-urgency").value = "all";
+      document.getElementById("f-fake").value = "all";
+      document.getElementById("f-from").value = "";
+      document.getElementById("f-to").value = "";
+      applyFilters();
+    }
+
+    // ─── Render Jobs ───
+    function renderJobs(jobs) {
+      const container = document.getElementById("jobs-list");
+      if (jobs.length === 0) {
+        container.innerHTML = `<div class="empty-state">🗂️ <strong>No jobs found</strong><p>Try clearing your filters.</p></div>`;
+        return;
+      }
+
+      container.innerHTML = jobs.map(job => {
+        const isUrgent = (job.urgency || "").toLowerCase() === "urgent";
+        const isFake = (job.is_fake || "").toLowerCase() === "fake";
+        const dateStr = new Date(job.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+        const cardClass = isFake ? "fake" : (isUrgent ? "urgent" : "normal");
+
+        return `
+        <div class="job-card ${cardClass}" id="jcard-${job.id}">
+          <div class="job-top">
+            <div class="job-desc">"${escapeHtml(job.description || "No description")}"</div>
+            <div class="badges">
+              <span class="badge ${isFake ? 'badge-fake' : 'badge-real'}">${isFake ? '⚠️ Fake' : '✅ Real'}</span>
+              <span class="badge ${isUrgent ? 'badge-urgent' : 'badge-normal'}">${isUrgent ? '🔴 Urgent' : '🟢 Normal'}</span>
+            </div>
+          </div>
+          <div class="job-meta">
+            <span>🔧 <strong>${escapeHtml(job.skill || "N/A")}</strong></span>
+            <span>💰 ₹${job.budget || 0}</span>
+            <span>📍 ${escapeHtml(job.location || "N/A")}</span>
+            <span>🕒 ${dateStr}</span>
+          </div>
+          <div class="job-actions">
+            <button class="btn btn-sm btn-danger" onclick="deleteJob(${job.id})">❌ Delete</button>
+            <button class="btn btn-sm btn-warn" onclick="markAsFake(${job.id}, ${!isFake})">
+              ${isFake ? '✅ Mark Real' : '⚠️ Mark Fake'}
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="rerunScoring(${job.id})">🔄 Re-run AI</button>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    // ─── Admin Actions ───
+    async function deleteJob(id) {
+      if (!confirm("Delete this job record permanently?")) return;
+      try {
+        console.log("API CALL →", `${API_BASE_URL}/api/jobs/${id}`);
+        const res = await fetch(`${API_BASE_URL}/api/jobs/${id}`, { method: "DELETE" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.message || "Delete failed");
+        allJobs = allJobs.filter(j => j.id !== id);
+        applyFilters();
+        await fetchAnalytics();
+        showToast("Job deleted successfully", "success");
+      } catch (err) {
+        showToast("Delete failed: " + err.message, "error");
+      }
+    }
+
+    async function markAsFake(id, setFake) {
+      try {
+        console.log("API CALL →", `${API_BASE_URL}/api/jobs/${id}/fake`);
+        const res = await fetch(`${API_BASE_URL}/api/jobs/${id}/fake`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isFake: setFake })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.message || "Update failed");
+        const job = allJobs.find(j => j.id === id);
+        if (job) job.is_fake = setFake ? "fake" : "real";
+        applyFilters();
+        await fetchAnalytics();
+        showToast(setFake ? "Marked as fake" : "Marked as real", "success");
+      } catch (err) {
+        showToast("Update failed: " + err.message, "error");
+      }
+    }
+
+    async function rerunScoring(id) {
+      const job = allJobs.find(j => j.id === id);
+      if (!job) return showToast("Job not found", "error");
+      try {
+        showToast("Re-running AI scoring...", "info");
+        console.log("API CALL →", `${API_BASE_URL}/api/process-job`);
+        const res = await fetch(`${API_BASE_URL}/api/process-job`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job: { description: job.description, requiredSkill: job.skill, location: job.location, budget: job.budget }
+          })
+        });
+        if (!res.ok) throw new Error("Backend not reachable");
+        const data = await res.json();
+        const newUrgency = data.urgency?.status || "normal";
+        job.urgency = newUrgency;
+        applyFilters();
+        showToast(`Re-scored: ${newUrgency.toUpperCase()}`, "success");
+      } catch (err) {
+        showToast("Re-run failed: " + err.message, "error");
+      }
+    }
+
+    // ─── CSV Export ───
+    function exportCSV() {
+      const filtered = getFilteredJobs();
+      if (filtered.length === 0) return showToast("No data to export", "error");
+      const headers = ["id", "description", "skill", "location", "budget", "urgency", "is_fake", "created_at"];
+      const rows = [headers.join(",")];
+      filtered.forEach(job => {
+        rows.push(headers.map(k => {
+          const val = (job[k] ?? "").toString().replace(/,/g, ";").replace(/\n/g, " ");
+          return `"${val}"`;
+        }).join(","));
+      });
+      const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `jobs_export_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      showToast(`Exported ${filtered.length} records`, "success");
+    }
+
+    function getFilteredJobs() {
+      const skill = document.getElementById("f-skill").value;
+      const urgency = document.getElementById("f-urgency").value;
+      const fakeFilter = document.getElementById("f-fake").value;
+      const fromDate = document.getElementById("f-from").value;
+      const toDate = document.getElementById("f-to").value;
+      let filtered = allJobs;
+      if (skill !== "all") filtered = filtered.filter(j => (j.skill || "").toLowerCase() === skill);
+      if (urgency !== "all") {
+        if (urgency === "urgent") filtered = filtered.filter(j => (j.urgency || "").toLowerCase() === "urgent");
+        else filtered = filtered.filter(j => (j.urgency || "").toLowerCase() !== "urgent");
+      }
+      if (fakeFilter !== "all") filtered = filtered.filter(j => (j.is_fake || "real").toLowerCase() === fakeFilter);
+      if (fromDate) filtered = filtered.filter(j => (j.created_at || "").slice(0, 10) >= fromDate);
+      if (toDate) filtered = filtered.filter(j => (j.created_at || "").slice(0, 10) <= toDate);
+      return filtered;
+    }
+
+    // ─── Utilities ───
+    function escapeHtml(unsafe) {
+      return (unsafe || "").toString()
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    // ─── Boot ───
+    window.addEventListener("DOMContentLoaded", refreshAll);
+  </script>
+</body>
+</html>

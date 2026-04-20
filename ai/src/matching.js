@@ -14,11 +14,14 @@ export function calculateScore(worker, job) {
   let score = 0;
   const reasons = [];
 
+  const jobLocation = (job.location || "").toLowerCase();
+  const jobBudget = Number(job.budget) || 0;
+  const jobUrgency = job.urgency || "normal";
+  const jobSkill = (job.requiredSkill || "").toLowerCase();
+
   // 1. Skill Match (40%)
   // Support both worker.skill (string) and worker.skills (array). 
   // Normalize and filter to avoid matching empty strings or non-string values.
-  const jobSkill = (job.requiredSkill || "").toString().trim().toLowerCase();
-  
   const workerSkillsRaw = Array.isArray(worker.skills) 
     ? worker.skills 
     : [(worker.skill || "")];
@@ -39,7 +42,6 @@ export function calculateScore(worker, job) {
   }
 
   // 3. Budget Match (20%)
-  // Assuming worker.minBudget exists or default to 0
   const workerMinBudget = Number(worker.minBudget) || 0;
   if (jobBudget >= workerMinBudget) {
     score += 20;
@@ -56,6 +58,7 @@ export function calculateScore(worker, job) {
   // 5. Urgency Boost (+10)
   if (jobUrgency === "urgent") {
     score += 10;
+    reasons.push("🔥 Urgent priority boost");
   }
 
   return {
